@@ -1,64 +1,73 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
-import { createServerClient } from "@supabase/ssr";
+import { type NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
-  // 1. Update session (refresh token)
-  const response = await updateSession(request);
+  // Create a single response that will be modified
+  let response = NextResponse.next({ request })
 
-  // 2. Check Auth status
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll();
+          return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          // processed in updateSession
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
-  );
+  )
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // IMPORTANT: This refreshes the auth token
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const isLoginPage = request.nextUrl.pathname === "/login";
-  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
-  const isRoot = request.nextUrl.pathname === "/";
+  const { pathname } = request.nextUrl
+  const isLoginPage = pathname === '/login'
+  const isDashboard = pathname.startsWith('/dashboard')
+  const isRoot = pathname === '/'
+
+  // Helper to create redirect with preserved cookies
+  const redirectWithCookies = (url: string) => {
+    const redirectResponse = NextResponse.redirect(new URL(url, request.url))
+    response.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
+  }
 
   // Redirect root to login
   if (isRoot) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectWithCookies('/login')
   }
 
-  // If unauthenticated and trying to access dashboard -> Redirect to Login
+  // Unauthenticated user trying to access dashboard -> Login
   if (!user && isDashboard) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectWithCookies('/login')
   }
 
-  // If authenticated and trying to access login -> Redirect to Dashboard (or specific restaurant)
+  // Authenticated user on login page -> Dashboard
   if (user && isLoginPage) {
-    // Ideally fetch restaurant slug here, or just go to /dashboard and let page handle it
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectWithCookies('/dashboard')
   }
 
-  // Role-Based Access Control (RBAC)
+  // Role-Based Access Control
   if (user) {
-    const role = user.user_metadata?.role;
-    // "restaurant_admin" has full access.
-    // "manager" is restricted from Settings and Staff as per request.
-
-    const restrictedRoutes = ['/settings', '/staff'];
-    const isRestrictedRoute = restrictedRoutes.some(route => request.nextUrl.pathname.includes(route));
+    const role = user.user_metadata?.role
+    const restrictedRoutes = ['/settings', '/staff']
+    const isRestrictedRoute = restrictedRoutes.some(route => pathname.includes(route))
 
     if (role === 'manager' && isRestrictedRoute) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return redirectWithCookies('/dashboard')
     }
   }
 
-  return response;
+  return response
 }
 
 export const config = {

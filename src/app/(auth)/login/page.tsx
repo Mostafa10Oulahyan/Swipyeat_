@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { loginAction } from "@/app/actions/auth";
 import { Loader2, AlertCircle } from "lucide-react";
 import Image from "next/image";
@@ -9,7 +8,6 @@ import Image from "next/image";
 export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -17,14 +15,10 @@ export default function LoginPage() {
 
     const res = await loginAction(formData);
 
-    if (res?.error) {
+    // Only handle errors - successful login redirects server-side
+    if (res && 'error' in res) {
       setError(res.error);
       setLoading(false);
-    } else if (res?.redirectUrl) {
-      router.push(res.redirectUrl);
-    } else {
-      // Should not happen if action handles redirect, but just in case
-      router.push("/dashboard");
     }
   }
 

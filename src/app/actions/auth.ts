@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function loginAction(formData: FormData) {
     const email = formData.get("email") as string;
@@ -17,8 +18,9 @@ export async function loginAction(formData: FormData) {
         return { success: false, error: error.message };
     }
 
-    // AuthProvider will fetch restaurant data based on user
-    return { success: true, redirectUrl: "/dashboard" };
+    // Revalidate and redirect server-side
+    revalidatePath('/dashboard', 'layout');
+    redirect('/dashboard');
 }
 
 export async function logoutAction() {
