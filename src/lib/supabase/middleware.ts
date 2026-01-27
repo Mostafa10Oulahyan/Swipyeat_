@@ -27,7 +27,9 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  // IMPORTANT: Do not remove this!
+  // This is what refreshes the auth token
+  await supabase.auth.getUser()
 
-  // Auth disabled - skip user check
   return supabaseResponse
 }

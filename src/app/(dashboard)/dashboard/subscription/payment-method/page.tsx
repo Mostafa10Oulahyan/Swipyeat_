@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     CreditCard,
@@ -14,11 +14,11 @@ import {
     Wifi,
     Loader2
 } from "lucide-react";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function PaymentMethodPage() {
-    const params = useParams();
     const router = useRouter();
-    const restaurantSlug = params.restaurantSlug as string;
+    const { restaurant } = useRestaurant();
 
     const [cardholderName, setCardholderName] = useState("Mostafa Oulahyan");
     const [cardNumber, setCardNumber] = useState("");
@@ -59,10 +59,10 @@ export default function PaymentMethodPage() {
             expiry: expiryDate,
             name: cardholderName
         };
-        localStorage.setItem(`payment_method_${restaurantSlug}`, JSON.stringify(cardData));
+        localStorage.setItem(`payment_method_${restaurant?.slug}`, JSON.stringify(cardData));
 
         setIsSaving(false);
-        router.push(`/dashboard/${restaurantSlug}/subscription`);
+        router.push(`/dashboard/subscription`);
     };
 
     return (
@@ -70,7 +70,7 @@ export default function PaymentMethodPage() {
             {/* Breadcrumbs */}
             <nav className="flex items-center gap-2 text-sm font-medium text-gray-500">
                 <Link
-                    href={`/dashboard/${restaurantSlug}/subscription`}
+                    href={`/dashboard/subscription`}
                     className="hover:text-[#559701] transition-colors"
                 >
                     Billing Overview
@@ -242,7 +242,7 @@ export default function PaymentMethodPage() {
 
                             <div className="text-center">
                                 <Link
-                                    href={`/dashboard/${restaurantSlug}/subscription`}
+                                    href={`/dashboard/subscription`}
                                     className="text-gray-500 font-bold hover:text-gray-900 transition-colors text-sm"
                                 >
                                     Cancel and return to billing

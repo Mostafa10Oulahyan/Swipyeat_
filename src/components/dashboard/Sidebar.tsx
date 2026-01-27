@@ -1,10 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { logoutAction } from "@/app/actions/auth";
 import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { usePathname } from "next/navigation";
+import { useProfile, useRestaurant } from "@/contexts/AuthProvider";
 import {
     LayoutDashboard,
     TrendingUp,
@@ -15,7 +14,6 @@ import {
     CreditCard,
     Settings,
     LogOut,
-    Receipt
 } from "lucide-react";
 
 const mainNavItems = [
@@ -71,37 +69,12 @@ const accountNavItems = [
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const params = useParams();
-    const restaurantSlug = params?.restaurantSlug as string;
-    const supabase = createClient();
+    const { profile, loading: profileLoading } = useProfile();
+    const { restaurant, loading: restaurantLoading } = useRestaurant();
 
-    const [restaurant, setRestaurant] = useState<any>(null);
-    const [userRole, setUserRole] = useState<string | null>(null);
+    const userRole = profile?.role;
 
-    useEffect(() => {
-        if (restaurantSlug) {
-            fetchRestaurant();
-            fetchUserRole();
-        }
-    }, [restaurantSlug]);
-
-    const fetchUserRole = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const { data: profile } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-            setUserRole(profile?.role || user.user_metadata?.role);
-        }
-    };
-
-    // ... (fetchRestaurant logic remains the same)
-
-
-
-    // Filter Items Logic
+    // Filter Items Logic based on role
     const filteredMainNav = mainNavItems.filter(item => {
         if (userRole === 'manager') {
             // Manager cannot see Staff
@@ -118,59 +91,8 @@ export default function Sidebar() {
         return true;
     });
 
-    const fetchRestaurant = async () => {
-        try {
-            // Join with subscriptions and subscription_plans to get plan info
-            const { data, error } = await supabase
-                .from("restaurants")
-                .select(`
-                    name, 
-                    logo_url,
-                    subscriptions(
-                        created_at,
-                        is_current,
-                        status,
-                        plan_id,
-                        subscription_plans(plan_type)
-                    )
-                `)
-                .eq("slug", restaurantSlug)
-                .single();
-
-            if (!error && data) {
-                const subs = (data.subscriptions as any[]) || [];
-
-                // Sort by descending to get the latest one
-                const sortedSubs = [...subs].sort((a: any, b: any) =>
-                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                );
-
-                const currentSub = sortedSubs.find((s: any) => s.is_current === true) || sortedSubs[0];
-
-                // Extract plan_type and status
-                let planType = null;
-                let subStatus = null;
-                if (currentSub) {
-                    const sp = currentSub.subscription_plans;
-                    const spObj = Array.isArray(sp) ? sp[0] : sp;
-                    planType = spObj?.plan_type || 'free_trial';
-                    subStatus = currentSub.status;
-                }
-
-                setRestaurant({
-                    name: data.name,
-                    logo_url: data.logo_url,
-                    plan_type: planType,
-                    status: subStatus
-                });
-            }
-        } catch (error) {
-            console.error("Error fetching sidebar data:", error);
-        }
-    };
-
     const isActive = (href: string) => {
-        const fullPath = `/dashboard/${restaurantSlug}${href}`;
+        const fullPath = `/dashboard${href}`;
         return pathname === fullPath;
     };
 
@@ -180,7 +102,7 @@ export default function Sidebar() {
 
         return (
             <Link
-                href={`/dashboard/${restaurantSlug}${item.href}`}
+                href={`/dashboard${item.href}`}
                 className={`
           flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm
           transition-all duration-200
@@ -195,6 +117,28 @@ export default function Sidebar() {
             </Link>
         );
     };
+
+    // Show loading state
+    if (profileLoading || restaurantLoading) {
+        return (
+            <aside className="w-[220px] h-screen bg-white flex flex-col fixed left-0 top-0 border-r border-gray-100">
+                <div className="p-5 pb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-20 h-20 bg-gray-100 rounded-xl animate-pulse" />
+                        <div className="flex flex-col gap-2">
+                            <div className="w-24 h-4 bg-gray-100 rounded animate-pulse" />
+                            <div className="w-16 h-3 bg-gray-100 rounded animate-pulse" />
+                        </div>
+                    </div>
+                </div>
+                <nav className="flex-1 px-3 space-y-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+                    ))}
+                </nav>
+            </aside>
+        );
+    }
 
     return (
         <aside className="w-[220px] h-screen bg-white flex flex-col fixed left-0 top-0 border-r border-gray-100">
@@ -218,19 +162,21 @@ export default function Sidebar() {
                     {/* Restaurant Name */}
                     <div className="flex flex-col gap-1 min-w-0">
                         <h2 className="text-sm font-bold text-[#1a202c] leading-tight capitalize break-words">
-                            {restaurant?.name || restaurantSlug?.replace(/-/g, ' ') || 'Restaurant Name'}
+                            {restaurant?.name || 'Restaurant Name'}
                         </h2>
-                        {(restaurant?.plan_type || restaurant?.status === 'canceled') && (
+                        {restaurant?.subscription && (
                             <div className="flex">
                                 <span className={`
                                     text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border
-                                    ${(restaurant?.status === 'canceled' || restaurant?.status === 'cancelled' || restaurant?.status === 'suspended')
+                                    ${(restaurant.subscription.status === 'canceled' || restaurant.subscription.status === 'suspended')
                                         ? "bg-red-500 text-white border-red-600"
-                                        : (restaurant.plan_type === 'pro' || restaurant.plan_type === 'premium')
+                                        : (restaurant.subscription.plan_type === 'pro')
                                             ? "bg-orange-50 text-orange-600 border-orange-100"
                                             : "bg-blue-50 text-blue-600 border-blue-100"}
                                 `}>
-                                    {(restaurant?.status === 'canceled' || restaurant?.status === 'cancelled') ? 'CANCELLED' : (restaurant?.status === 'suspended') ? 'SUSPENDED' : (restaurant.plan_type === 'pro' || restaurant.plan_type === 'premium' ? 'Professional' : 'Free Trial')}
+                                    {(restaurant.subscription.status === 'canceled') ? 'CANCELLED' :
+                                        (restaurant.subscription.status === 'suspended') ? 'SUSPENDED' :
+                                            (restaurant.subscription.plan_type === 'pro' ? 'Professional' : 'Free Trial')}
                                 </span>
                             </div>
                         )}

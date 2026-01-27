@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   TrendingUp,
   ShoppingCart,
@@ -10,18 +10,16 @@ import {
   Plus,
   UserPlus,
   QrCode as QrCodeIcon,
-  MoreVertical,
   Layers,
-  CheckCircle2,
 } from "lucide-react";
-import { getRestaurantBySlugAction } from "@/app/actions/restaurant";
 import { getDashboardStatsAction } from "@/app/actions/dashboard";
 import { toast } from "sonner";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function DashboardPage() {
-  const params = useParams();
   const router = useRouter();
-  const restaurantSlug = params.restaurantSlug as string;
+  const { restaurant, loading: restaurantLoading } = useRestaurant();
+  const restaurantSlug = restaurant?.slug;
 
   const [isLoading, setIsLoading] = useState(true);
   const [statsData, setStatsData] = useState({
@@ -33,18 +31,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const initDashboard = async () => {
+      if (!restaurant?.id) return;
+
       try {
-        const restoRes = await getRestaurantBySlugAction(restaurantSlug);
-        if (restoRes.success && restoRes.data) {
-          const statsRes = await getDashboardStatsAction(restoRes.data.id);
-          if (statsRes.success && statsRes.data) {
-            setStatsData({
-              todayOrders: statsRes.data.todayOrders,
-              activeOrders: statsRes.data.activeOrders,
-              todayRevenue: statsRes.data.todayRevenue,
-            });
-            setRecentOrders(statsRes.data.recentOrders);
-          }
+        const statsRes = await getDashboardStatsAction(restaurant.id);
+        if (statsRes.success && statsRes.data) {
+          setStatsData({
+            todayOrders: statsRes.data.todayOrders,
+            activeOrders: statsRes.data.activeOrders,
+            todayRevenue: statsRes.data.todayRevenue,
+          });
+          setRecentOrders(statsRes.data.recentOrders);
         }
       } catch (error) {
         console.error("Dashboard error:", error);
@@ -54,8 +51,10 @@ export default function DashboardPage() {
       }
     };
 
-    initDashboard();
-  }, [restaurantSlug]);
+    if (!restaurantLoading && restaurant) {
+      initDashboard();
+    }
+  }, [restaurant, restaurantLoading]);
 
   const stats = [
     {
@@ -122,6 +121,19 @@ export default function DashboardPage() {
     return date.toLocaleDateString();
   };
 
+  // Show loading while restaurant is loading
+  if (restaurantLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl p-5 h-32" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -165,7 +177,7 @@ export default function DashboardPage() {
               )}
             </div>
             <button
-              onClick={() => router.push(`/dashboard/${restaurantSlug}/orders`)}
+              onClick={() => router.push(`/dashboard/orders`)}
               className="text-sm text-[#559701] font-semibold hover:underline"
             >
               View All
@@ -194,7 +206,7 @@ export default function DashboardPage() {
                 <div
                   key={order.id}
                   className="px-5 py-4 grid grid-cols-4 items-center hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => router.push(`/dashboard/${restaurantSlug}/orders`)}
+                  onClick={() => router.push(`/dashboard/orders`)}
                 >
                   <div>
                     <span className="block text-sm font-bold text-[#1a202c]">{order.order_number}</span>
@@ -223,7 +235,7 @@ export default function DashboardPage() {
             <h2 className="text-lg font-bold text-[#1a202c] mb-4">Quick Actions</h2>
             <div className="space-y-3">
               <button
-                onClick={() => router.push(`/dashboard/${restaurantSlug}/menu`)}
+                onClick={() => router.push(`/dashboard/menu`)}
                 className="w-full flex items-center gap-4 p-3 rounded-xl bg-[#f7fafc] hover:bg-gray-100 transition-colors text-left"
               >
                 <div className="w-10 h-10 bg-[#e6f4ea] rounded-lg flex items-center justify-center">
@@ -236,7 +248,7 @@ export default function DashboardPage() {
               </button>
 
               <button
-                onClick={() => router.push(`/dashboard/${restaurantSlug}/staff`)}
+                onClick={() => router.push(`/dashboard/staff`)}
                 className="w-full flex items-center gap-4 p-3 rounded-xl bg-[#f7fafc] hover:bg-gray-100 transition-colors text-left"
               >
                 <div className="w-10 h-10 bg-[#e6f4ea] rounded-lg flex items-center justify-center">
@@ -249,7 +261,7 @@ export default function DashboardPage() {
               </button>
 
               <button
-                onClick={() => router.push(`/dashboard/${restaurantSlug}/QRCodetables`)}
+                onClick={() => router.push(`/dashboard/QRCodetables`)}
                 className="w-full flex items-center gap-4 p-3 rounded-xl bg-[#f7fafc] hover:bg-gray-100 transition-colors text-left"
               >
                 <div className="w-10 h-10 bg-[#e6f4ea] rounded-lg flex items-center justify-center">

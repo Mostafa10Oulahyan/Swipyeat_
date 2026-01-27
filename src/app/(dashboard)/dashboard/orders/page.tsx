@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
 import {
   Search,
   Filter,
@@ -23,69 +22,60 @@ import { UIOrderStatus } from "@/types/order";
 import CancellationModal from "@/components/CancellationModal";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { getOrdersAction, updateOrderStatusAction, cancelOrderAction, deleteOrderAction } from "@/app/actions/orders";
-import { getRestaurantBySlugAction } from "@/app/actions/restaurant";
 import { transformOrderForUI } from "@/lib/orderUtils";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useRestaurant, useUser } from "@/contexts/AuthProvider";
 
 export default function OrdersPage() {
-  const params = useParams();
-  const restaurantSlug = params.restaurantSlug as string;
+  const { restaurant, loading: restaurantLoading } = useRestaurant();
+  const { user } = useUser();
+  const currentUserId = user?.id || null;
 
-  const [restaurant, setRestaurant] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<UIOrderStatus | 'ALL'>('ALL');
   const [filterTableType, setFilterTableType] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const itemsPerPage = 9;
 
 
   const [showCancellation, setShowCancellation] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Fetch restaurant and orders from database
+  // Fetch orders from database
   useEffect(() => {
     const initData = async () => {
+      if (!restaurant?.id) return;
+
       setIsLoading(true);
       try {
-        // Get current user for actions
+        // Fetch initial orders
+        await fetchOrders(restaurant.id);
+
+        // SET UP REALTIME SUBSCRIPTION
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) setCurrentUserId(user.id);
+        const channel = supabase
+          .channel('orders-realtime')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'orders',
+              filter: `restaurant_id=eq.${restaurant.id}`
+            },
+            (payload) => {
+              // Refresh orders on any change
+              fetchOrders(restaurant.id);
+            }
+          )
+          .subscribe();
 
-        // Get restaurant ID
-        const restoRes = await getRestaurantBySlugAction(restaurantSlug);
-        if (restoRes.success && restoRes.data) {
-          setRestaurant(restoRes.data);
-
-          // Fetch initial orders
-          await fetchOrders(restoRes.data.id);
-
-          // SET UP REALTIME SUBSCRIPTION
-          const channel = supabase
-            .channel('orders-realtime')
-            .on(
-              'postgres_changes',
-              {
-                event: '*',
-                schema: 'public',
-                table: 'orders',
-                filter: `restaurant_id=eq.${restoRes.data.id}`
-              },
-              (payload) => {
-                // Refresh orders on any change
-                fetchOrders(restoRes.data.id);
-              }
-            )
-            .subscribe();
-
-          return () => {
-            supabase.removeChannel(channel);
-          };
-        }
+        return () => {
+          supabase.removeChannel(channel);
+        };
       } catch (error) {
         console.error("Error initializing:", error);
         toast.error("Failed to load dashboard");
@@ -94,8 +84,10 @@ export default function OrdersPage() {
       }
     };
 
-    initData();
-  }, [restaurantSlug]);
+    if (!restaurantLoading && restaurant) {
+      initData();
+    }
+  }, [restaurant, restaurantLoading]);
 
   // Separate fetch function to be called by filters/realtime
   const fetchOrders = async (restaurantId: string) => {
@@ -120,6 +112,7 @@ export default function OrdersPage() {
       fetchOrders(restaurant.id);
     }
   }, [filterStatus, filterTableType]);
+
 
   // Filter Logic (now applied to fetched data)
   const filteredOrders = orders.filter(order => {

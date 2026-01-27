@@ -17,21 +17,8 @@ export async function loginAction(formData: FormData) {
         return { success: false, error: error.message };
     }
 
-    // Fetch user's restaurant to redirect correctly
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-        const { data: userData } = await supabase
-            .from('users')
-            .select('*, restaurant:restaurants(slug)')
-            .eq('id', user.id)
-            .single();
-
-        if (userData?.restaurant?.slug) {
-            return { success: true, redirectUrl: `/dashboard/${userData.restaurant.slug}` };
-        }
-    }
-
-    return { success: true, redirectUrl: "/dashboard" }; // Fallback
+    // AuthProvider will fetch restaurant data based on user
+    return { success: true, redirectUrl: "/dashboard" };
 }
 
 export async function logoutAction() {

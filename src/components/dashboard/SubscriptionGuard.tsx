@@ -1,64 +1,27 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter, usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { Lock, Loader2, MessageSquare } from "lucide-react";
+import React from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { Lock } from "lucide-react";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function SubscriptionGuard({ children }: { children: React.ReactNode }) {
-    const params = useParams();
     const pathname = usePathname();
     const router = useRouter();
-    const restaurantSlug = params?.restaurantSlug as string;
-    const supabase = createClient();
+    const { restaurant, loading } = useRestaurant();
 
-    const [status, setStatus] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // If we're on the subscription page, don't show the modal to allow reactivation
+    const isSubscriptionPage = pathname.endsWith("/subscription") || pathname.endsWith("/subscription/payment-method");
 
-    useEffect(() => {
-        if (restaurantSlug) {
-            checkSubscription();
-        }
-    }, [restaurantSlug, pathname]);
-
-    const checkSubscription = async () => {
-        // If we're on the subscription page, don't show the modal to allow reactivation
-        if (pathname.endsWith("/subscription") || pathname.endsWith("/subscription/payment-method")) {
-            setIsLoading(false);
-            return;
-        }
-
-        try {
-            const { data, error } = await supabase
-                .from("restaurants")
-                .select(`
-                    subscriptions(
-                        is_current,
-                        status
-                    )
-                `)
-                .eq("slug", restaurantSlug)
-                .single();
-
-            if (!error && data) {
-                const subs = data.subscriptions as any[];
-                const currentSub = subs?.find((s: any) => s.is_current === true) || subs?.[0];
-                setStatus(currentSub?.status || "active");
-            }
-        } catch (error) {
-            console.error("Error checking subscription:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    if (isLoading) {
+    if (loading) {
         return null; // Or a subtle loader
     }
 
+    const status = restaurant?.subscription?.status;
+    const restaurantSlug = restaurant?.slug;
     const isSuspended = status === "canceled" || status === "suspended";
 
-    if (isSuspended && !pathname.endsWith("/subscription")) {
+    if (isSuspended && !isSubscriptionPage) {
         return (
             <div className="relative">
                 {/* Blurred Content */}
@@ -86,7 +49,7 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
 
                         <div className="space-y-4 pt-4">
                             <button
-                                onClick={() => router.push(`/dashboard/${restaurantSlug}/subscription?reactivate=true`)}
+                                onClick={() => router.push(`/dashboard/subscription?reactivate=true`)}
                                 className="w-full bg-[#559701] hover:bg-[#4a8001] text-white py-5 rounded-2xl font-black text-lg transition-all shadow-xl shadow-[#559701]/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
                             >
                                 <span className="text-xl">👉</span> Reactivate with Pro

@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CreditCard, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function PricingPage() {
     const router = useRouter();
-    const params = useParams();
-    const restaurantSlug = params.restaurantSlug as string;
+    const { restaurant, loading: isLoadingRestaurant } = useRestaurant();
     const supabase = createClient();
 
     const [isLoading, setIsLoading] = useState(true);
@@ -18,28 +18,24 @@ export default function PricingPage() {
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
     useEffect(() => {
-        fetchSubscriptionData();
-    }, [restaurantSlug]);
+        if (restaurant) {
+            fetchSubscriptionData();
+        }
+    }, [restaurant]);
 
     const fetchSubscriptionData = async () => {
+        if (!restaurant) return;
+
         try {
-            const { data: restaurant } = await supabase
-                .from("restaurants")
-                .select("id")
-                .eq("slug", restaurantSlug)
-                .single();
+            const { data: subs } = await supabase
+                .from("subscriptions")
+                .select(`*, subscription_plans (*)`)
+                .eq("restaurant_id", restaurant.id)
+                .order("created_at", { ascending: false });
 
-            if (restaurant) {
-                const { data: subs } = await supabase
-                    .from("subscriptions")
-                    .select(`*, subscription_plans (*)`)
-                    .eq("restaurant_id", restaurant.id)
-                    .order("created_at", { ascending: false });
-
-                const activeSub = subs?.find((s: any) => s.is_current) || subs?.[0];
-                setSubscription(activeSub);
-                setCurrentPlan(activeSub?.subscription_plans);
-            }
+            const activeSub = subs?.find((s: any) => s.is_current) || subs?.[0];
+            setSubscription(activeSub);
+            setCurrentPlan(activeSub?.subscription_plans);
         } catch (e) {
             console.error(e);
         } finally {
@@ -107,7 +103,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto p-6 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white min-h-screen">
             <div className="space-y-6">
                 <Link
-                    href={`/dashboard/${restaurantSlug}/subscription`}
+                    href={`/dashboard/subscription`}
                     className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-2"
                 >
                     <ChevronRight className="w-4 h-4 rotate-180" /> Back to Billing
@@ -203,7 +199,7 @@ export default function PricingPage() {
                                 <div className="pt-8 space-y-4">
                                     {(!isCurrent) ? (
                                         <Link
-                                            href={`/dashboard/${restaurantSlug}/subscription/payment-method`}
+                                            href={`/dashboard/subscription/payment-method`}
                                             className={`
                         block text-center w-full py-4 rounded-3xl font-black transition-all text-base
                         ${isPremium

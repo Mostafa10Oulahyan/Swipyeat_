@@ -2,7 +2,7 @@
 
 import { Edit2, Trash2, MoreVertical, Search, Filter, Key, Check, Copy, AlertTriangle, Loader2, X } from "lucide-react";
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useRestaurant } from "@/contexts/AuthProvider";
 import { resetStaffPasswordAction } from "@/app/actions/staff";
 import ConfirmationModal from "@/components/dashboard/ConfirmationModal";
 
@@ -23,8 +23,7 @@ interface StaffTableProps {
 }
 
 export default function StaffTable({ staff, onEdit, onDelete, onToggleStatus }: StaffTableProps) {
-    const params = useParams();
-    const restaurantSlug = params.restaurantSlug as string;
+    const { restaurant } = useRestaurant();
 
     const [resetData, setResetData] = useState<{ id: string, code: string } | null>(null);
     const [isResetting, setIsResetting] = useState<string | null>(null);
@@ -52,7 +51,7 @@ export default function StaffTable({ staff, onEdit, onDelete, onToggleStatus }: 
         setIsResetting(confirmResetId);
         setConfirmResetId(null); // Clear the ID immediately after starting the reset
         try {
-            const result = await resetStaffPasswordAction(confirmResetId, restaurantSlug);
+            const result = await resetStaffPasswordAction(confirmResetId);
             if (result.success && result.tempPassword) {
                 setResetData({ id: confirmResetId, code: result.tempPassword });
             } else {

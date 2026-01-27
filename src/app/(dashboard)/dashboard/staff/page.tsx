@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Plus, Search, Filter } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import StaffStats from "@/components/staff/StaffStats";
@@ -11,17 +11,16 @@ import SecurityNoticeModal from "@/components/staff/SecurityNoticeModal";
 import CredentialVerificationModal from "@/components/staff/CredentialVerificationModal";
 import UpdatePasswordModal from "@/components/staff/UpdatePasswordModal";
 import { createStaffAction } from "@/app/actions/staff";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function StaffPage() {
-  const params = useParams();
   const router = useRouter();
-  const restaurantSlug = params.restaurantSlug as string;
+  const { restaurant, loading: restaurantLoading } = useRestaurant();
   const supabase = createClient();
 
   const [staff, setStaff] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -31,23 +30,17 @@ export default function StaffPage() {
   const [tempCredential, setTempCredential] = useState<{ email: string, code: string, userId: string, name: string } | null>(null);
 
   useEffect(() => {
-    fetchRestaurantAndStaff();
-  }, [restaurantSlug]);
+    if (!restaurantLoading && restaurant) {
+      fetchStaff();
+    }
+  }, [restaurant, restaurantLoading]);
 
-  const fetchRestaurantAndStaff = async () => {
+  const fetchStaff = async () => {
+    if (!restaurant?.id) return;
+
     setIsLoading(true);
     try {
-      // 1. Get Restaurant ID from Slug
-      const { data: restaurant, error: resError } = await supabase
-        .from("restaurants")
-        .select("id")
-        .eq("slug", restaurantSlug)
-        .single();
-
-      if (resError) throw resError;
-      setRestaurantId(restaurant.id);
-
-      // 2. Fetch Staff for this Restaurant
+      // Fetch Staff for this Restaurant
       const { data: staffData, error: staffError } = await supabase
         .from("users")
         .select("*")
@@ -66,14 +59,14 @@ export default function StaffPage() {
   };
 
   const handleAddStaff = async (formData: any) => {
-    if (!restaurantId) {
+    if (!restaurant?.id) {
       alert("Restaurant data is still loading. Please try again in a moment.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const result = await createStaffAction(formData, restaurantId, restaurantSlug);
+      const result = await createStaffAction(formData, restaurant.id);
 
       if (!result.success) {
         throw new Error(result.error);
@@ -94,7 +87,7 @@ export default function StaffPage() {
         setIsModalOpen(false);
       }
 
-      fetchRestaurantAndStaff();
+      fetchStaff();
     } catch (error: any) {
       console.error("Error adding staff:", error);
       alert(`Failed to add staff member: ${error.message}`);
@@ -111,7 +104,7 @@ export default function StaffPage() {
         .eq("id", id);
 
       if (error) throw error;
-      fetchRestaurantAndStaff();
+      fetchStaff();
     } catch (error) {
       console.error("Error toggling status:", error);
     }
@@ -121,7 +114,7 @@ export default function StaffPage() {
     try {
       const { error } = await supabase.from("users").delete().eq("id", id);
       if (error) throw error;
-      fetchRestaurantAndStaff();
+      fetchStaff();
     } catch (error) {
       console.error("Error deleting staff:", error);
     }
@@ -193,7 +186,7 @@ export default function StaffPage() {
       ) : (
         <StaffTable
           staff={filteredStaff}
-          onEdit={(id) => router.push(`/dashboard/${restaurantSlug}/staff/${id}/edit`)}
+          onEdit={(id) => router.push(`/dashboard/staff/${id}/edit`)}
           onDelete={handleDeleteStaff}
           onToggleStatus={handleToggleStatus}
         />

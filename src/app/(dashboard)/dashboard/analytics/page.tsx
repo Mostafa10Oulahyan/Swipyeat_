@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
 import {
     TrendingUp,
     Clock,
@@ -21,49 +20,21 @@ import {
     User
 } from "lucide-react";
 import { getAnalyticsDataAction } from "@/app/actions/analytics";
-import { createClient } from "@/lib/supabase/client";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function AnalyticsPage() {
-    const params = useParams();
-    const restaurantSlug = params.restaurantSlug as string;
-    const supabase = createClient();
+    const { restaurant, loading: restaurantLoading } = useRestaurant();
 
     const [timeframe, setTimeframe] = useState<'today' | '7days' | '30days'>('today');
     const [isLoading, setIsLoading] = useState(true);
-    const [restaurant, setRestaurant] = useState<any>(null);
     const [data, setData] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchInitialData();
-    }, [restaurantSlug]);
-
-    useEffect(() => {
-        if (restaurant) {
+        if (!restaurantLoading && restaurant) {
             fetchAnalytics();
         }
-    }, [timeframe, restaurant]);
-
-    const fetchInitialData = async () => {
-        if (!restaurantSlug) return;
-        try {
-            const { data: restData, error } = await supabase
-                .from("restaurants")
-                .select("id, name")
-                .eq("slug", restaurantSlug)
-                .single();
-
-            if (error) {
-                console.error("Supabase error fetching restaurant:", error);
-                setError("Failed to load restaurant details");
-                return;
-            }
-            setRestaurant(restData);
-        } catch (error) {
-            console.error("Error fetching restaurant:", error);
-            setError("Unexpected error loading restaurant");
-        }
-    };
+    }, [timeframe, restaurant, restaurantLoading]);
 
     const fetchAnalytics = async () => {
         if (!restaurant?.id) return;
@@ -91,7 +62,7 @@ export default function AnalyticsPage() {
         '30days': "Last 30 Days"
     };
 
-    if (isLoading && !data) {
+    if ((isLoading || restaurantLoading) && !data) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="flex flex-col items-center gap-4">

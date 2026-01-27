@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function createStaffAction(formData: any, restaurantId: string, restaurantSlug: string) {
+export async function createStaffAction(formData: any, restaurantId: string) {
     try {
         const supabaseAdmin = createAdminClient();
         const supabase = await createClient(); // For regular DB checks if needed
@@ -41,7 +41,7 @@ export async function createStaffAction(formData: any, restaurantId: string, res
             throw dbError;
         }
 
-        revalidatePath(`/dashboard/${restaurantSlug}/staff`);
+        revalidatePath(`/dashboard/staff`);
         return { success: true, data: { id: authData.user.id } };
     } catch (error: any) {
         console.error("Staff creation error:", error);
@@ -49,7 +49,7 @@ export async function createStaffAction(formData: any, restaurantId: string, res
     }
 }
 
-export async function resetStaffPasswordAction(userId: string, restaurantSlug: string) {
+export async function resetStaffPasswordAction(userId: string) {
     try {
         const supabaseAdmin = createAdminClient();
 
@@ -70,7 +70,7 @@ export async function resetStaffPasswordAction(userId: string, restaurantSlug: s
 
         if (error) throw error;
 
-        revalidatePath(`/dashboard/${restaurantSlug}/staff`);
+        revalidatePath(`/dashboard/staff`);
         return { success: true, tempPassword };
     } catch (error: any) {
         console.error("Password reset error:", error);
@@ -97,7 +97,7 @@ export async function completePasswordSetupAction(newPassword: string) {
     }
 }
 
-export async function updateStaffAction(userId: string, formData: any, restaurantSlug: string) {
+export async function updateStaffAction(userId: string, formData: any) {
     try {
         const supabaseAdmin = createAdminClient();
 
@@ -123,7 +123,7 @@ export async function updateStaffAction(userId: string, formData: any, restauran
 
         if (authError) throw authError;
 
-        revalidatePath(`/dashboard/${restaurantSlug}/staff`);
+        revalidatePath(`/dashboard/staff`);
         return { success: true };
     } catch (error: any) {
         console.error("Staff update error:", error);

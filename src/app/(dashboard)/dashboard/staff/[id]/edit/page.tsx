@@ -5,12 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { ChevronRight, User, Mail, Briefcase, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateStaffAction } from "@/app/actions/staff";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function EditStaffPage() {
     const params = useParams();
     const router = useRouter();
-    const restaurantSlug = params.restaurantSlug as string;
     const staffId = params.id as string;
+    const { restaurant } = useRestaurant();
     const supabase = createClient();
 
     const [isLoading, setIsLoading] = useState(true);
@@ -54,9 +55,9 @@ export default function EditStaffPage() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const result = await updateStaffAction(staffId, formData, restaurantSlug);
+            const result = await updateStaffAction(staffId, formData);
             if (result.success) {
-                router.push(`/dashboard/${restaurantSlug}/staff`);
+                router.push(`/dashboard/staff`);
             } else {
                 throw new Error(result.error);
             }

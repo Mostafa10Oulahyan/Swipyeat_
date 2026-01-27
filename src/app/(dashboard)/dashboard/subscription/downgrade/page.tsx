@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     ChevronRight,
@@ -18,46 +18,39 @@ import {
     Calendar
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function DowngradePage() {
-    const params = useParams();
     const router = useRouter();
-    const restaurantSlug = params.restaurantSlug as string;
+    const { restaurant, loading: isLoadingRestaurant } = useRestaurant();
     const supabase = createClient();
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [subscription, setSubscription] = useState<any>(null);
-    const [restaurant, setRestaurant] = useState<any>(null);
     const [reason, setReason] = useState("");
     const [feedback, setFeedback] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
 
     useEffect(() => {
-        fetchSubscriptionData();
-    }, [restaurantSlug]);
+        if (restaurant) {
+            fetchSubscriptionData();
+        }
+    }, [restaurant]);
 
     const fetchSubscriptionData = async () => {
+        if (!restaurant) return;
+
         setIsLoading(true);
         try {
-            const { data: rest, error: rError } = await supabase
-                .from("restaurants")
-                .select("id, name")
-                .eq("slug", restaurantSlug)
-                .maybeSingle();
-
-            if (rError) throw rError;
-            if (!rest) throw new Error("Restaurant not found");
-            setRestaurant(rest);
-
             const { data: subs, error: sError } = await supabase
                 .from("subscriptions")
                 .select(`
                     *,
                     subscription_plans (*)
                 `)
-                .eq("restaurant_id", rest.id)
+                .eq("restaurant_id", restaurant.id)
                 .order("created_at", { ascending: false });
 
             if (sError) throw sError;
@@ -90,7 +83,7 @@ export default function DowngradePage() {
             if (uError) throw uError;
 
             // Success redirect
-            router.push(`/dashboard/${restaurantSlug}/subscription?success=downgraded`);
+            router.push(`/dashboard/subscription?success=downgraded`);
         } catch (err: any) {
             console.error("Downgrade failed:", err);
             setError("Failed to process downgrade. Please try again.");
@@ -114,7 +107,7 @@ export default function DowngradePage() {
                 <h2 className="text-2xl font-bold">No Active Subscription</h2>
                 <p className="text-gray-500">You are already on the Free plan or have no active subscription to downgrade.</p>
                 <Link
-                    href={`/dashboard/${restaurantSlug}/subscription`}
+                    href={`/dashboard/subscription`}
                     className="inline-block bg-[#559701] text-white px-6 py-2 rounded-xl font-bold"
                 >
                     Back to Dashboard
@@ -124,7 +117,7 @@ export default function DowngradePage() {
     }
 
     const nextPlan = subscription.subscription_plans?.plan_type === 'premium' ? 'Pro' : 'Free';
-    const last4 = JSON.parse(localStorage.getItem(`payment_method_${restaurantSlug}`) || '{}').last4 || "4242";
+    const last4 = JSON.parse(localStorage.getItem(`payment_method_${restaurant?.slug}`) || '{}').last4 || "4242";
 
     return (
         <div className="max-w-6xl mx-auto p-6 md:p-12 space-y-10 bg-gray-50/30 min-h-screen relative">
@@ -221,7 +214,7 @@ export default function DowngradePage() {
             {/* Breadcrumbs */}
             <nav className="flex items-center gap-2 text-sm font-medium text-gray-500">
                 <Link
-                    href={`/dashboard/${restaurantSlug}/subscription`}
+                    href={`/dashboard/subscription`}
                     className="hover:text-[#559701] transition-colors"
                 >
                     Subscription

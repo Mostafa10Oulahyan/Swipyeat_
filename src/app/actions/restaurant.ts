@@ -61,7 +61,7 @@ export async function updateRestaurantAction(restaurantId: string, restaurantSlu
             } catch (e) { console.error("Cover cleanup error", e); }
         }
 
-        revalidatePath(`/dashboard/${restaurantSlug}/settings`);
+        revalidatePath(`/dashboard/settings`);
         return { success: true };
     } catch (error: any) {
         console.error("Error updating restaurant:", error);

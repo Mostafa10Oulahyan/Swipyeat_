@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
 import QRCode from 'react-qr-code';
 import { Download, CheckCircle, FileText, Smartphone } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
-import { getRestaurantBySlugAction, updateRestaurantAction, getActiveSubscriptionAction } from "@/app/actions/restaurant";
+import { updateRestaurantAction, getActiveSubscriptionAction } from "@/app/actions/restaurant";
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useRestaurant } from '@/contexts/AuthProvider';
 
 interface TableAsset {
   id: number;
@@ -19,12 +18,9 @@ interface TableAsset {
 }
 
 export default function QRCodetablesPage() {
-  const params = useParams();
   const router = useRouter();
-  const restaurantSlug = params.restaurantSlug as string;
-  const supabase = createClient();
+  const { restaurant, loading: restaurantLoading } = useRestaurant();
 
-  const [restaurant, setRestaurant] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const [numTables, setNumTables] = useState<number>(10);
   const [dbNumTables, setDbNumTables] = useState<number>(10);
@@ -36,50 +32,45 @@ export default function QRCodetablesPage() {
   const [origin, setOrigin] = useState('');
 
   useEffect(() => {
-    // Auth disabled
     if (typeof window !== 'undefined') {
       setOrigin(window.location.origin);
     }
-    fetchRestaurant();
-  }, [restaurantSlug]);
+    if (!restaurantLoading && restaurant) {
+      initializeData();
+    }
+  }, [restaurant, restaurantLoading]);
 
-  const fetchRestaurant = async () => {
-    try {
-      const res = await getRestaurantBySlugAction(restaurantSlug);
-      if (res.success && res.data) {
-        setRestaurant(res.data);
-        setNumTables(res.data.number_of_tables || 10);
-        setDbNumTables(res.data.number_of_tables || 10);
+  const initializeData = async () => {
+    if (!restaurant) return;
 
-        // Fetch subscription
-        const subRes = await getActiveSubscriptionAction(res.data.id);
-        if (subRes.success && subRes.data) {
-          console.log("DEBUG: Subscription Data", subRes.data);
-          const planType = subRes.data.plan?.plan_type;
-          console.log("DEBUG: Plan Type", planType);
+    setNumTables(restaurant.number_of_tables || 10);
+    setDbNumTables(restaurant.number_of_tables || 10);
 
-          setSubscription(subRes.data);
-          // Limit: Premium = Unlimited (999), Pro = 50, Free = 20
-          let planLimit;
-          if (planType === 'premium') {
-            planLimit = 999; // Unlimited
-          } else if (planType === 'pro') {
-            planLimit = 50;
-          } else {
-            planLimit = 20; // free_trial
-          }
-          console.log("DEBUG: Set Limit", planLimit);
-          setMaxTablesAllowed(planLimit);
+    // Fetch subscription
+    const subRes = await getActiveSubscriptionAction(restaurant.id);
+    if (subRes.success && subRes.data) {
+      console.log("DEBUG: Subscription Data", subRes.data);
+      const planType = subRes.data.plan?.plan_type;
+      console.log("DEBUG: Plan Type", planType);
 
-          if (res.data.number_of_tables > planLimit) {
-            setNumTables(planLimit);
-          }
-        } else {
-          console.log("DEBUG: No subscription found", subRes);
-        }
+      setSubscription(subRes.data);
+      // Limit: Premium = Unlimited (999), Pro = 50, Free = 20
+      let planLimit;
+      if (planType === 'premium') {
+        planLimit = 999; // Unlimited
+      } else if (planType === 'pro') {
+        planLimit = 50;
+      } else {
+        planLimit = 20; // free_trial
       }
-    } catch (error) {
-      console.error("Error fetching restaurant:", error);
+      console.log("DEBUG: Set Limit", planLimit);
+      setMaxTablesAllowed(planLimit);
+
+      if (restaurant.number_of_tables > planLimit) {
+        setNumTables(planLimit);
+      }
+    } else {
+      console.log("DEBUG: No subscription found", subRes);
     }
   };
 
@@ -95,7 +86,7 @@ export default function QRCodetablesPage() {
         toast.error(
           <div>
             FREE plan: max {maxTablesAllowed} tables.{' '}
-            <button onClick={() => router.push(`/dashboard/${restaurantSlug}/subscription/pricing`)} className="underline font-bold">
+            <button onClick={() => router.push(`/dashboard/subscription/pricing`)} className="underline font-bold">
               Upgrade to PRO
             </button>
           </div>,
@@ -105,7 +96,7 @@ export default function QRCodetablesPage() {
         toast.error(
           <div>
             PRO plan: max {maxTablesAllowed} tables.{' '}
-            <button onClick={() => router.push(`/dashboard/${restaurantSlug}/subscription/pricing`)} className="underline font-bold">
+            <button onClick={() => router.push(`/dashboard/subscription/pricing`)} className="underline font-bold">
               Upgrade to PREMIUM
             </button>
           </div>,
@@ -117,7 +108,7 @@ export default function QRCodetablesPage() {
 
     setIsGenerating(true);
     try {
-      const res = await updateRestaurantAction(restaurant.id, restaurantSlug, {
+      const res = await updateRestaurantAction(restaurant.id, restaurant.slug, {
         ...restaurant,
         number_of_tables: numTables
       });
@@ -146,7 +137,7 @@ export default function QRCodetablesPage() {
         toast.error(
           <div>
             FREE plan: max {maxTablesAllowed} tables.{' '}
-            <button onClick={() => router.push(`/dashboard/${restaurantSlug}/subscription/pricing`)} className="underline font-bold">
+            <button onClick={() => router.push(`/dashboard/subscription/pricing`)} className="underline font-bold">
               Upgrade to PRO
             </button>
           </div>,
@@ -156,7 +147,7 @@ export default function QRCodetablesPage() {
         toast.error(
           <div>
             PRO plan: max {maxTablesAllowed} tables.{' '}
-            <button onClick={() => router.push(`/dashboard/${restaurantSlug}/subscription/pricing`)} className="underline font-bold">
+            <button onClick={() => router.push(`/dashboard/subscription/pricing`)} className="underline font-bold">
               Upgrade to PREMIUM
             </button>
           </div>,
@@ -174,11 +165,11 @@ export default function QRCodetablesPage() {
 
       for (let i = 1; i <= numTables; i++) {
         // Format as requested: baseUrl/restaurant-slug?table=num
-        const url = `${baseUrl}/${restaurantSlug}?table=${i}`;
+        const url = `${baseUrl}/${restaurant?.slug}?table=${i}`;
         newTables.push({
           id: i,
           name: `Table ${i}`,
-          slug: `${restaurantSlug}?table=${i}`,
+          slug: `${restaurant?.slug}?table=${i}`,
           url: url,
         });
       }
@@ -245,7 +236,7 @@ export default function QRCodetablesPage() {
       }
 
       setPdfProgress('Saving...');
-      pdf.save(`${restaurantSlug}.pdf`);
+      pdf.save(`${restaurant?.slug}.pdf`);
     } catch (error) {
       console.error("PDF Generation Error", error);
       alert("Failed to generate PDF. See console.");
@@ -309,7 +300,7 @@ export default function QRCodetablesPage() {
               <input
                 type="text"
                 readOnly
-                value={restaurantSlug || ''}
+                value={restaurant?.slug || ''}
                 className="pl-10 block w-full bg-gray-50 border-gray-200 text-gray-500 rounded-lg p-3 sm:text-sm"
               />
             </div>

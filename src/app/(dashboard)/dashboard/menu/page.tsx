@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
 import Image from "next/image";
 import {
   Search,
@@ -31,7 +30,6 @@ import {
   Modifier,
 } from "@/types/menu";
 import { v4 as uuidv4 } from "uuid";
-import { createClient } from "@/lib/supabase/client";
 import {
   getMenuItemsAction,
   getCategoriesAction,
@@ -51,13 +49,11 @@ import {
   linkModifierToItemAction,
   unlinkModifierFromItemAction
 } from "@/app/actions/menu";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function MenuPage() {
-  const params = useParams();
-  const restaurantSlug = params.restaurantSlug as string;
-  const supabase = createClient();
+  const { restaurant, loading: restaurantLoading } = useRestaurant();
 
-  const [restaurant, setRestaurant] = useState<any>(null);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,27 +133,21 @@ export default function MenuPage() {
   const [modifierFormData, setModifierFormData] = useState<Partial<Modifier>>(defaultModifierState);
 
   useEffect(() => {
-    fetchInitialData();
-  }, [restaurantSlug]);
+    if (!restaurantLoading && restaurant) {
+      fetchInitialData();
+    }
+  }, [restaurant, restaurantLoading]);
 
   const fetchInitialData = async () => {
+    if (!restaurant?.id) return;
+
     setIsLoading(true);
     try {
-      // 1. Fetch Restaurant
-      const { data: restData, error: restError } = await supabase
-        .from("restaurants")
-        .select("id, slug")
-        .eq("slug", restaurantSlug)
-        .single();
-
-      if (restError) throw restError;
-      setRestaurant(restData);
-
-      // 2. Fetch Categories & Items
+      // Fetch Categories & Items
       const [catsRes, itemsRes, modsRes] = await Promise.all([
-        getCategoriesAction(restData.id),
-        getMenuItemsAction(restData.id),
-        getRestaurantModifiersAction(restData.id)
+        getCategoriesAction(restaurant.id),
+        getMenuItemsAction(restaurant.id),
+        getRestaurantModifiersAction(restaurant.id)
       ]);
 
       if (catsRes.success && catsRes.data) setCategories(catsRes.data as Category[]);
@@ -235,13 +225,13 @@ export default function MenuPage() {
     setIsSaving(true);
     const itemToSave = {
       ...formData,
-      restaurant_id: restaurant.id,
+      restaurant_id: restaurant!.id,
       updated_at: new Date().toISOString(),
       created_at: editingItem ? editingItem.created_at : new Date().toISOString(),
     };
 
     try {
-      const res = await upsertMenuItemAction(itemToSave, restaurantSlug);
+      const res = await upsertMenuItemAction(itemToSave, restaurant!.slug);
       if (res.success) {
         setEditingItem(res.data); // Ensure we have the ID for the next steps
         setActiveItemTab("variants");
@@ -271,7 +261,7 @@ export default function MenuPage() {
         ...v,
         menu_item_id: editingItem.id,
       }));
-      const res = await upsertItemVariantsAction(variantsToSave, restaurantSlug);
+      const res = await upsertItemVariantsAction(variantsToSave, restaurant!.slug);
 
       if (res.success) {
         setActiveItemTab("modifiers");
@@ -293,7 +283,7 @@ export default function MenuPage() {
 
     try {
       if (existingLink) {
-        const res = await unlinkModifierFromItemAction(editingItem.id, modifierId, restaurantSlug);
+        const res = await unlinkModifierFromItemAction(editingItem.id, modifierId, restaurant!.slug);
         if (res.success) {
           setItemModifierLinks(prev => prev.filter(l => l.modifier_id !== modifierId));
           toast.success("Modifier unlinked");
@@ -305,7 +295,7 @@ export default function MenuPage() {
           is_required: false,
           max_selections: 1
         };
-        const res = await linkModifierToItemAction(newLink, restaurantSlug);
+        const res = await linkModifierToItemAction(newLink, restaurant!.slug);
         if (res.success) {
           setItemModifierLinks(prev => [...prev, res.data]);
           toast.success("Modifier linked");
@@ -323,7 +313,7 @@ export default function MenuPage() {
 
     try {
       const updatedLink = { ...existingLink, ...updates };
-      const res = await linkModifierToItemAction(updatedLink, restaurantSlug);
+      const res = await linkModifierToItemAction(updatedLink, restaurant!.slug);
       if (res.success) {
         setItemModifierLinks(prev => prev.map(l => l.modifier_id === modifierId ? res.data : l));
         toast.info("Link updated");
@@ -340,9 +330,9 @@ export default function MenuPage() {
     try {
       const modToSave = {
         ...modifierFormData,
-        restaurant_id: restaurant.id,
+        restaurant_id: restaurant!.id,
       };
-      const res = await upsertModifierAction(modToSave, restaurantSlug);
+      const res = await upsertModifierAction(modToSave, restaurant!.slug);
       if (res.success) {
         toast.success(editingModifier ? "Modifier updated" : "Modifier created");
         setEditingModifier(null);
@@ -399,25 +389,25 @@ export default function MenuPage() {
     setIsSaving(true);
     try {
       if (deleteModal.type === "item") {
-        const res = await deleteMenuItemAction(deleteModal.id, restaurantSlug);
+        const res = await deleteMenuItemAction(deleteModal.id, restaurant!.slug);
         if (res.success) {
           toast.success("Item deleted successfully");
           setShowItemModal(false);
         } else throw new Error(res.error);
       } else if (deleteModal.type === "category") {
-        const res = await deleteCategoryAction(deleteModal.id, restaurantSlug);
+        const res = await deleteCategoryAction(deleteModal.id, restaurant!.slug);
         if (res.success) {
           toast.success("Category deleted successfully");
           setShowCategoryModal(false);
         } else throw new Error(res.error);
       } else if (deleteModal.type === "variant") {
-        const res = await deleteItemVariantAction(deleteModal.id, restaurantSlug);
+        const res = await deleteItemVariantAction(deleteModal.id, restaurant!.slug);
         if (res.success) {
           toast.success("Variant removed");
           setItemVariants(prev => prev.filter(v => v.id !== deleteModal.id));
         } else throw new Error(res.error);
       } else if (deleteModal.type === "modifier") {
-        const res = await deleteModifierAction(deleteModal.id, restaurantSlug);
+        const res = await deleteModifierAction(deleteModal.id, restaurant!.slug);
         if (res.success) {
           toast.success("Modifier permanently removed");
           fetchInitialData();
@@ -437,7 +427,7 @@ export default function MenuPage() {
 
   const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
     try {
-      const res = await toggleItemAvailabilityAction(id, !currentStatus, restaurantSlug);
+      const res = await toggleItemAvailabilityAction(id, !currentStatus, restaurant!.slug);
       if (res.success) {
         setItems(prev => prev.map(item => item.id === id ? { ...item, is_available: !currentStatus } : item));
         toast.success(`Item is now ${!currentStatus ? 'available' : 'unavailable'}`);
@@ -468,7 +458,7 @@ export default function MenuPage() {
     const toastId = toast.loading("Uploading category image...");
     try {
       const { uploadMedia } = await import("@/lib/storage-utils");
-      const result = await uploadMedia(file, 'categories', restaurant.id);
+      const result = await uploadMedia(file, 'categories', restaurant!.id);
 
       if (result.success && result.publicUrl) {
         setCategoryFormData((prev) => ({ ...prev, image_url: result.publicUrl }));
@@ -491,13 +481,13 @@ export default function MenuPage() {
     setIsSaving(true);
     const catToSave = {
       ...categoryFormData,
-      restaurant_id: restaurant.id,
+      restaurant_id: restaurant!.id,
       updated_at: new Date().toISOString(),
       created_at: editingCategory ? editingCategory.created_at : new Date().toISOString(),
     };
 
     try {
-      const res = await upsertCategoryAction(catToSave, restaurantSlug);
+      const res = await upsertCategoryAction(catToSave, restaurant!.slug);
       if (res.success) {
         toast.success(editingCategory ? "Category updated" : "Category created");
         setShowCategoryModal(false);

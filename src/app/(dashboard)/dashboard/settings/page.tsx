@@ -1,16 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Save, Store, MapPin, Phone, Mail, Hash, Image as ImageIcon, Loader2, Link, Upload, X, Lock, Unlock, Eye, EyeOff, Map, Instagram } from "lucide-react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { updateRestaurantAction } from "@/app/actions/restaurant";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 export default function SettingsPage() {
-  const params = useParams();
-  const restaurantSlug = params.restaurantSlug as string;
-  const supabase = createClient();
+  const { restaurant, loading: restaurantLoading } = useRestaurant();
 
   const router = useRouter();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -19,7 +17,6 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState<string | null>(null);
-  const [restaurant, setRestaurant] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -39,41 +36,25 @@ export default function SettingsPage() {
   const [showPin, setShowPin] = useState(false);
 
   useEffect(() => {
-    fetchRestaurant();
-  }, [restaurantSlug]);
-
-  const fetchRestaurant = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("restaurants")
-        .select("*")
-        .eq("slug", restaurantSlug)
-        .single();
-
-      if (error) throw error;
-      setRestaurant(data);
+    if (!restaurantLoading && restaurant) {
       setFormData({
-        name: data.name || "",
-        slug: data.slug || "",
-        address: data.address || "",
-        city: data.city || "",
-        phone: data.phone || "",
-        email: data.email || "",
-        number_of_tables: data.number_of_tables?.toString() || "10",
-        logo_url: data.logo_url || "",
-        cover_image_url: data.cover_image_url || "",
-        pin: data.pin || "0000",
-        is_locked: data.is_locked || false,
-        google_map_url: data.google_map_url || "",
-        instagram_url: data.instagram_url || "",
+        name: restaurant.name || "",
+        slug: restaurant.slug || "",
+        address: restaurant.address || "",
+        city: restaurant.city || "",
+        phone: restaurant.phone || "",
+        email: restaurant.email || "",
+        number_of_tables: restaurant.number_of_tables?.toString() || "10",
+        logo_url: restaurant.logo_url || "",
+        cover_image_url: restaurant.cover_image_url || "",
+        pin: restaurant.pin || "0000",
+        is_locked: restaurant.is_locked || false,
+        google_map_url: restaurant.google_map_url || "",
+        instagram_url: restaurant.instagram_url || "",
       });
-    } catch (error) {
-      console.error("Error fetching restaurant:", error);
-    } finally {
       setIsLoading(false);
     }
-  };
+  }, [restaurant, restaurantLoading]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo_url' | 'cover_image_url') => {
     const file = e.target.files?.[0];
@@ -115,10 +96,10 @@ export default function SettingsPage() {
 
     setIsSaving(true);
     try {
-      const result = await updateRestaurantAction(restaurant.id, restaurantSlug, formData);
+      const result = await updateRestaurantAction(restaurant.id, restaurant.slug, formData);
       if (!result.success) throw new Error(result.error);
 
-      if (formData.slug !== restaurantSlug) {
+      if (formData.slug !== restaurant.slug) {
         // If slug changed, redirect to new settings URL
         router.push(`/dashboard/${formData.slug}/settings`);
       }
@@ -132,7 +113,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || restaurantLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-[#559701]" />

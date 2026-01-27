@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useRestaurant } from "@/contexts/AuthProvider";
 import {
     Filter,
     Download,
@@ -18,13 +18,11 @@ import ReceiptPreview from "@/components/ReceiptPreview";
 import InvoiceDrawer from "@/components/paiments/InvoiceDrawer";
 import FactureModal from "@/components/paiments/FactureModal";
 import { getOrdersAction } from "@/app/actions/orders";
-import { getRestaurantBySlugAction } from "@/app/actions/restaurant";
 import { transformOrderForUI } from "@/lib/orderUtils"; // You might need to adjust this utils if it doesn't support paid fields perfectly, but likely works
 import { toast } from "sonner";
 
 export default function BillingPage() {
-    const params = useParams();
-    const restaurantSlug = params.restaurantSlug as string;
+    const { restaurant, loading: isLoadingRestaurant } = useRestaurant();
 
     const [loading, setLoading] = useState(true);
     const [invoices, setInvoices] = useState<any[]>([]);
@@ -40,24 +38,17 @@ export default function BillingPage() {
     // Receipt Printing State
     const [showReceipt, setShowReceipt] = useState(false);
     const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
-    const [restaurantData, setRestaurantData] = useState<any>(null);
 
     // Fetch Paid Orders
     useEffect(() => {
         const fetchPaidOrders = async () => {
+            if (!restaurant) return;
+
             setLoading(true);
             try {
-                // 1. Get Restaurant ID
-                const restoRes = await getRestaurantBySlugAction(restaurantSlug);
-                if (!restoRes.success || !restoRes.data) {
-                    toast.error("Restaurant not found");
-                    return;
-                }
-                setRestaurantData(restoRes.data);
-                const restaurantId = restoRes.data.id;
                 // Set number of tables if available
-                if (restoRes.data.number_of_tables) {
-                    setNumberOfTables(restoRes.data.number_of_tables);
+                if (restaurant.number_of_tables) {
+                    setNumberOfTables(restaurant.number_of_tables);
                 }
 
                 // 2. Prepare filters
@@ -72,7 +63,7 @@ export default function BillingPage() {
                 }
 
                 // 3. Get Orders
-                const ordersRes = await getOrdersAction(restaurantId, filters);
+                const ordersRes = await getOrdersAction(restaurant.id, filters);
 
                 if (ordersRes.success && ordersRes.data) {
                     // 4. Transform data
@@ -112,10 +103,10 @@ export default function BillingPage() {
             }
         };
 
-        if (restaurantSlug) {
+        if (restaurant) {
             fetchPaidOrders();
         }
-    }, [restaurantSlug, currentPage, selectedTable]); // Re-fetch on page or table change
+    }, [restaurant, currentPage, selectedTable]); // Re-fetch on page or table change
 
 
 
@@ -332,12 +323,12 @@ export default function BillingPage() {
             )}
 
             {/* Receipt Modal */}
-            {showReceipt && selectedReceipt && restaurantData && (
+            {showReceipt && selectedReceipt && restaurant && (
                 <ReceiptPreview
                     order={selectedReceipt}
                     restaurant={{
-                        name: restaurantData.name,
-                        image_url: restaurantData.logo_url
+                        name: restaurant.name,
+                        image_url: restaurant.logo_url ?? undefined
                     }}
                     onClose={() => setShowReceipt(false)}
                 />

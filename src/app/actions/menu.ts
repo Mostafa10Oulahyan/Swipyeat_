@@ -112,7 +112,7 @@ export async function upsertMenuItemAction(item: any, restaurantSlug: string) {
         return { success: false, error: error.message };
     }
 
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true, data };
 }
 
@@ -131,7 +131,7 @@ export async function deleteMenuItemAction(itemId: string, restaurantSlug: strin
         return { success: false, error: error.message };
     }
 
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true };
 }
 
@@ -150,7 +150,7 @@ export async function toggleItemAvailabilityAction(itemId: string, isAvailable: 
         return { success: false, error: error.message };
     }
 
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true };
 }
 
@@ -206,7 +206,7 @@ export async function upsertCategoryAction(category: any, restaurantSlug: string
         return { success: false, error: error.message };
     }
 
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true, data };
 }
 
@@ -225,7 +225,7 @@ export async function deleteCategoryAction(categoryId: string, restaurantSlug: s
         return { success: false, error: error.message };
     }
 
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true };
 }
 
@@ -240,7 +240,7 @@ export async function upsertItemVariantsAction(variants: any[], restaurantSlug: 
         .select();
 
     if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true, data };
 }
 
@@ -265,7 +265,7 @@ export async function upsertItemVariantAction(variant: any, restaurantSlug: stri
         .single();
 
     if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true, data };
 }
 
@@ -277,7 +277,7 @@ export async function deleteItemVariantAction(variantId: string, restaurantSlug:
         .eq("id", variantId);
 
     if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true };
 }
 
@@ -305,7 +305,7 @@ export async function upsertModifierAction(modifier: any, restaurantSlug: string
         .single();
 
     if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true, data };
 }
 
@@ -317,7 +317,7 @@ export async function deleteModifierAction(modifierId: string, restaurantSlug: s
         .eq("id", modifierId);
 
     if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true };
 }
 
@@ -344,7 +344,7 @@ export async function linkModifierToItemAction(link: any, restaurantSlug: string
         .single();
 
     if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true, data };
 }
 
@@ -356,6 +356,6 @@ export async function unlinkModifierFromItemAction(itemId: string, modifierId: s
         .match({ menu_item_id: itemId, modifier_id: modifierId });
 
     if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/${restaurantSlug}/menu`);
+    revalidatePath(`/dashboard/menu`);
     return { success: true };
 }

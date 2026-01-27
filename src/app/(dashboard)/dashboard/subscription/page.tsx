@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   CreditCard,
@@ -19,6 +19,7 @@ import {
   Receipt
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useRestaurant } from "@/contexts/AuthProvider";
 
 interface UsageMetric {
   label: string;
@@ -29,8 +30,7 @@ interface UsageMetric {
 }
 
 export default function SubscriptionPage() {
-  const params = useParams();
-  const restaurantSlug = params.restaurantSlug as string;
+  const { restaurant, loading: isLoadingRestaurant } = useRestaurant();
   const supabase = createClient();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -40,14 +40,15 @@ export default function SubscriptionPage() {
   const [savedCard, setSavedCard] = useState<any>(null);
 
   useEffect(() => {
-    fetchSubscriptionData();
-    loadSavedCard();
-
-
-  }, [restaurantSlug]);
+    if (restaurant) {
+      fetchSubscriptionData();
+      loadSavedCard();
+    }
+  }, [restaurant]);
 
   const loadSavedCard = () => {
-    const stored = localStorage.getItem(`payment_method_${restaurantSlug}`);
+    if (!restaurant) return;
+    const stored = localStorage.getItem(`payment_method_${restaurant.slug}`);
     if (stored) {
       try {
         setSavedCard(JSON.parse(stored));
@@ -58,18 +59,10 @@ export default function SubscriptionPage() {
   };
 
   const fetchSubscriptionData = async () => {
+    if (!restaurant) return;
+
     setIsLoading(true);
     try {
-      // 1. Get restaurant
-      const { data: restaurant, error: rError } = await supabase
-        .from("restaurants")
-        .select("id, name, number_of_tables")
-        .eq("slug", restaurantSlug)
-        .maybeSingle();
-
-      if (rError) throw rError;
-      if (!restaurant) throw new Error(`Restaurant not found for slug: ${restaurantSlug}`);
-
       // 2. Get active subscription (fallback to latest if no current specified)
       const { data: subs, error: sError } = await supabase
         .from("subscriptions")
@@ -182,7 +175,7 @@ export default function SubscriptionPage() {
             Save 20% on Yearly
           </span>
           <Link
-            href={`/dashboard/${restaurantSlug}/subscription/pricing`}
+            href={`/dashboard/subscription/pricing`}
             className="bg-gradient-to-r from-[#559701] to-[#6fb301] text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-green-200 hover:scale-[1.02] transition-all"
           >
             Upgrade to Premium
@@ -220,7 +213,7 @@ export default function SubscriptionPage() {
               </div>
               <div className="flex items-center gap-3">
                 <Link
-                  href={plan?.plan_type === 'free_trial' ? '#' : `/dashboard/${restaurantSlug}/subscription/downgrade`}
+                  href={plan?.plan_type === 'free_trial' ? '#' : `/dashboard/subscription/downgrade`}
                   className={`px-6 py-2.5 border border-gray-200 font-bold rounded-xl text-gray-700 transition-colors ${plan?.plan_type === 'free_trial' ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'hover:bg-gray-50'}`}
                 >
                   Cancel
@@ -331,7 +324,7 @@ export default function SubscriptionPage() {
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500 font-medium">Default payment method</p>
               <Link
-                href={`/dashboard/${restaurantSlug}/subscription/payment-method`}
+                href={`/dashboard/subscription/payment-method`}
                 className="text-green-600 font-bold text-sm hover:underline"
               >
                 Edit

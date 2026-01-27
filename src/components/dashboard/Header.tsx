@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { useParams } from "next/navigation";
 import { Search, Bell } from "lucide-react";
 import ProfileSettingsModal from "./ProfileSettingsModal";
-import { createClient } from "@/lib/supabase/client";
 import { updateProfileAction } from "@/app/actions/profile";
+import { useProfile, useAuth } from "@/contexts/AuthProvider";
 
 interface HeaderProps {
     title?: string;
@@ -14,84 +13,27 @@ interface HeaderProps {
 }
 
 export default function Header({ title = "Admin Overview", showStatus = true }: HeaderProps) {
-    const params = useParams();
-    const restaurantSlug = params?.restaurantSlug as string;
+    const { profile, loading } = useProfile();
+    const { refreshAuth } = useAuth();
 
     const [showProfileModal, setShowProfileModal] = useState(false);
-    const [user, setUser] = useState<{ name: string; email: string; avatar?: string; id?: string; phone?: string; role?: string } | null>(null);
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            const supabase = createClient();
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-
-            if (authUser) {
-                // Fetch profile from public.users table
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('name, avatar_url, phone, role')
-                    .eq('id', authUser.id)
-                    .single();
-
-                setUser({
-                    name: profile?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "Admin",
-                    email: authUser.email || "",
-                    avatar: profile?.avatar_url || authUser.user_metadata?.avatar_url,
-                    id: authUser.id,
-                    phone: profile?.phone,
-                    role: profile?.role || authUser.user_metadata?.role || "restaurant_admin"
-                });
-            } else if (restaurantSlug) {
-                // Fallback for when Auth is disabled/dev mode: fetch admin by restaurant slug
-                const { data: restaurant } = await supabase
-                    .from("restaurants")
-                    .select("id")
-                    .eq("slug", restaurantSlug)
-                    .single();
-
-                if (restaurant) {
-                    const { data: fetchedUser } = await supabase
-                        .from("users")
-                        .select("id, name, email, avatar_url, phone, role")
-                        .eq("restaurant_id", restaurant.id)
-                        .eq("role", "restaurant_admin")
-                        .limit(1)
-                        .maybeSingle();
-
-                    if (fetchedUser) {
-                        setUser({
-                            name: fetchedUser.name || "Admin",
-                            email: fetchedUser.email || "",
-                            avatar: fetchedUser.avatar_url,
-                            id: fetchedUser.id,
-                            phone: fetchedUser.phone,
-                            role: fetchedUser.role || "restaurant_admin"
-                        });
-                    } else {
-                        setUser({
-                            name: "Restaurant Admin",
-                            email: "admin@example.com",
-                            avatar: undefined,
-                            id: undefined,
-                            phone: "",
-                            role: "restaurant_admin"
-                        });
-                    }
-                }
-            }
-        };
-        fetchUser();
-    }, [restaurantSlug]);
+    // Derive user display info from profile
+    const user = profile ? {
+        name: profile.name || profile.email?.split('@')[0] || "Admin",
+        email: profile.email || "",
+        avatar: profile.avatar_url,
+        id: profile.id,
+        phone: profile.phone ?? undefined,
+        role: profile.role || "restaurant_admin"
+    } : null;
 
     const handleUpdateProfile = async (data: any) => {
         if (!user?.id) return;
         const result = await updateProfileAction(user.id, data);
         if (result.success) {
-            setUser(prev => prev ? {
-                ...prev,
-                ...data,
-                avatar: data.avatar_url || prev.avatar
-            } : null);
+            // Refresh auth context to get updated profile
+            await refreshAuth();
         } else {
             throw new Error(result.error);
         }
@@ -130,7 +72,7 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
                         onClick={() => setShowProfileModal(true)}
                     >
                         <div className="text-right hidden md:block">
-                            <p className="text-sm font-semibold text-[#1a202c]">{user?.name || "Loading..."}</p>
+                            <p className="text-sm font-semibold text-[#1a202c]">{loading ? "Loading..." : user?.name || "Admin"}</p>
                             <p className="text-xs text-gray-500 capitalize">{user?.role?.replace(/_/g, " ") || "Restaurant Admin"}</p>
                         </div>
                         {/* Avatar */}
