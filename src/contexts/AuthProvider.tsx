@@ -119,11 +119,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
         console.log('[AUTH PROVIDER] fetchProfile START for userId:', userId);
         try {
-            const queryPromise = supabase
-                .from("users")
-                .select("*")
-                .eq("id", userId)
-                .single();
+            const queryPromise = Promise.resolve(
+                supabase
+                    .from("users")
+                    .select("*")
+                    .eq("id", userId)
+                    .single()
+            );
 
             const { data, error } = await withTimeout(queryPromise, 5000, 'Profile fetch timeout');
 
@@ -144,18 +146,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const fetchRestaurant = useCallback(async (restaurantId: string): Promise<Restaurant | null> => {
         console.log('[AUTH PROVIDER] fetchRestaurant START for id:', restaurantId);
         try {
-            const queryPromise = supabase
-                .from("restaurants")
-                .select(`
-                    *,
-                    subscriptions(
-                        is_current,
-                        status,
-                        subscription_plans(plan_type)
-                    )
-                `)
-                .eq("id", restaurantId)
-                .single();
+            const queryPromise = Promise.resolve(
+                supabase
+                    .from("restaurants")
+                    .select(`
+                        *,
+                        subscriptions(
+                            is_current,
+                            status,
+                            subscription_plans(plan_type)
+                        )
+                    `)
+                    .eq("id", restaurantId)
+                    .single()
+            );
 
             const { data, error } = await withTimeout(queryPromise, 5000, 'Restaurant fetch timeout');
 
