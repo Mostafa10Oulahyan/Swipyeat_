@@ -41,42 +41,42 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
 
     return (
         <>
-            <header className="h-16 bg-white flex items-center justify-between px-6 sticky top-0 z-10">
+            <header className="h-14 sm:h-16 bg-white flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 border-b border-gray-100 lg:border-b-0">
                 {/* Left - Page Title + Status */}
-                <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-bold text-[#1a202c]">{title}</h1>
+                <div className="flex items-center gap-2 sm:gap-3 ml-12 lg:ml-0">
+                    <h1 className="text-base sm:text-lg lg:text-xl font-bold text-[#1a202c] truncate max-w-[120px] sm:max-w-none">{title}</h1>
                     {showStatus && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f0fff4] border border-[#c6f6d5]">
+                        <span className="hidden sm:inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[#f0fff4] border border-[#c6f6d5]">
                             <span className="w-2 h-2 bg-[#48bb78] rounded-full animate-pulse"></span>
-                            <span className="text-xs font-medium text-[#276749]">System Online</span>
+                            <span className="text-[10px] sm:text-xs font-medium text-[#276749]">System Online</span>
                         </span>
                     )}
                 </div>
 
                 {/* Right Section */}
-                <div className="flex items-center gap-3">
-                    {/* Search Button */}
-                    <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
-                        <Search className="w-5 h-5 text-gray-500" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Search Button - hidden on very small screens */}
+                    <button className="hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                        <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                     </button>
 
                     {/* Notifications */}
-                    <button className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
-                        <Bell className="w-5 h-5 text-gray-500" />
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#f17900] rounded-full"></span>
+                    <button className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                        <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                        <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-2 h-2 bg-[#f17900] rounded-full"></span>
                     </button>
 
                     {/* User Profile */}
                     <div
-                        className="flex items-center gap-3 pl-3 ml-2 border-l border-gray-200 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                        className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 ml-1 sm:ml-2 border-l border-gray-200 cursor-pointer hover:bg-gray-50 p-1.5 sm:p-2 rounded-lg transition-colors"
                         onClick={() => setShowProfileModal(true)}
                     >
                         <div className="text-right hidden md:block">
-                            <p className="text-sm font-semibold text-[#1a202c]">{loading ? "Loading..." : user?.name || "Admin"}</p>
-                            <p className="text-xs text-gray-500 capitalize">{user?.role?.replace(/_/g, " ") || "Restaurant Admin"}</p>
+                            <p className="text-xs sm:text-sm font-semibold text-[#1a202c] truncate max-w-[100px] lg:max-w-none">{loading ? "Loading..." : user?.name || "Admin"}</p>
+                            <p className="text-[10px] sm:text-xs text-gray-500 capitalize truncate max-w-[100px] lg:max-w-none">{user?.role?.replace(/_/g, " ") || "Restaurant Admin"}</p>
                         </div>
                         {/* Avatar */}
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center border border-white shadow-sm">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center border border-white shadow-sm flex-shrink-0">
                             {user?.avatar ? (
                                 <Image
                                     src={user.avatar}
@@ -87,7 +87,7 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
                                     unoptimized
                                 />
                             ) : (
-                                <span className="text-white font-bold text-lg">
+                                <span className="text-white font-bold text-sm sm:text-lg">
                                     {user?.name?.charAt(0).toUpperCase() || "A"}
                                 </span>
                             )}
@@ -98,7 +98,7 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
 
             {showProfileModal && user && (
                 <ProfileSettingsModal
-                    user={{ ...user, avatar_url: user.avatar? user.avatar : undefined }}
+                    user={{ ...user, avatar_url: user.avatar ? user.avatar : undefined }}
                     onClose={() => setShowProfileModal(false)}
                     onSave={handleUpdateProfile}
                 />

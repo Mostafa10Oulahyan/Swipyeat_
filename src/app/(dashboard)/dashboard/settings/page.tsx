@@ -80,14 +80,8 @@ export default function SettingsPage() {
   };
 
   const handleNameChange = (name: string) => {
-    const slug = name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '') // Remove non-word chars
-      .replace(/[\s_-]+/g, '-')  // Replace spaces/underscores with hyphens
-      .replace(/^-+|-+$/g, '');   // Trim hyphens from ends
-
-    setFormData({ ...formData, name, slug });
+    // Decoupled: Slug does not update automatically with name change
+    setFormData({ ...formData, name });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +107,42 @@ export default function SettingsPage() {
     }
   };
 
+  const [isRetrying, setIsRetrying] = useState(false);
+
   if (isLoading || restaurantLoading) {
+    // If not loading but no restaurant, show error modal
+    if (!restaurantLoading && !restaurant) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 text-center animate-in fade-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto">
+              <Store className="w-8 h-8 text-red-500" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900">Connection Issue</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                We couldn't load your restaurant data. This might be due to a poor internet connection or a temporary server issue.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setIsRetrying(true);
+                window.location.reload();
+              }}
+              disabled={isRetrying}
+              className="w-full flex items-center justify-center gap-2 bg-[#559701] hover:bg-[#4a8001] text-white px-6 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-[#559701]/20 active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+            >
+              {isRetrying ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <span>Retry Connection</span>
+              )}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-[#559701]" />
@@ -124,19 +153,11 @@ export default function SettingsPage() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 md:shadow-none mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Restaurant Management</h1>
           <p className="text-sm text-gray-500 mt-1">Update your restaurant profile and general settings.</p>
         </div>
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="flex items-center gap-2 bg-[#559701] hover:bg-[#4a8001] text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-[#559701]/20 disabled:opacity-50"
-        >
-          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-          Save Changes
-        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -250,11 +271,9 @@ export default function SettingsPage() {
               <div className="relative">
                 <input
                   type="text"
-                  required
-                  placeholder="my-cool-restaurant"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  readOnly
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed focus:ring-0 outline-none transition-all pl-12"
                   value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                 />
                 <Link className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
               </div>
@@ -375,6 +394,18 @@ export default function SettingsPage() {
         </div>
 
       </div>
-    </form>
+
+      {/* Sticky Bottom Save Bar */}
+      <div className="sticky bottom-0 z-30 bg-white border-t border-gray-200 p-4 -mx-4 sm:-mx-5 lg:-mx-6 -mb-4 sm:-mb-5 lg:-mb-6 flex items-center justify-end shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="flex items-center gap-2 bg-[#559701] hover:bg-[#4a8001] text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-[#559701]/20 disabled:opacity-50 w-full sm:w-auto justify-center"
+        >
+          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          Save Changes
+        </button>
+      </div>
+    </form >
   );
 }

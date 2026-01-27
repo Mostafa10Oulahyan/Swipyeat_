@@ -127,17 +127,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     .single()
             );
 
-            const { data, error } = await withTimeout(queryPromise, 5000, 'Profile fetch timeout');
+            const { data, error } = await withTimeout(queryPromise, 10000, 'Profile fetch timeout');
 
             if (error) {
-                console.error("[AUTH PROVIDER] Error fetching profile:", error);
+                // PGRST116: The result contains 0 rows
+                if (error.code === 'PGRST116') {
+                    console.log("[AUTH PROVIDER] Profile not found (new user?)");
+                    return null;
+                }
+                console.error("[AUTH PROVIDER] Error fetching profile:", JSON.stringify(error, null, 2));
                 return null;
             }
 
             console.log('[AUTH PROVIDER] fetchProfile SUCCESS:', data?.name);
             return data as UserProfile;
         } catch (err) {
-            console.error("[AUTH PROVIDER] fetchProfile FAILED:", err);
+            console.error("[AUTH PROVIDER] fetchProfile FAILED with exception:", err);
             return null;
         }
     }, [supabase]);

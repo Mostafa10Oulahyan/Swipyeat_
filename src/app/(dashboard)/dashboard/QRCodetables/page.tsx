@@ -161,15 +161,15 @@ export default function QRCodetablesPage() {
     // Simulate generation delay
     setTimeout(() => {
       const newTables: TableAsset[] = [];
-      const baseUrl = 'http://order.swipyeat.com';
+      const baseUrl = 'http://orders.swipyeat.com';
 
       for (let i = 1; i <= numTables; i++) {
         // Format as requested: baseUrl/restaurant-slug?table=num
-        const url = `${baseUrl}/${restaurant?.slug}?table=${i}`;
+        const url = `${baseUrl}/${restaurant?.slug}/${i}`;
         newTables.push({
           id: i,
           name: `Table ${i}`,
-          slug: `${restaurant?.slug}?table=${i}`,
+          slug: `${restaurant?.slug}/${i}`,
           url: url,
         });
       }
