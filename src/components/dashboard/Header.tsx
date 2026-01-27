@@ -98,7 +98,7 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
 
             {showProfileModal && user && (
                 <ProfileSettingsModal
-                    user={{ ...user, avatar_url: user.avatar }}
+                    user={{ ...user, avatar_url: user.avatar? user.avatar : undefined }}
                     onClose={() => setShowProfileModal(false)}
                     onSave={handleUpdateProfile}
                 />
