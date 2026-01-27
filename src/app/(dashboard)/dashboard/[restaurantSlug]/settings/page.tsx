@@ -1,0 +1,399 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Save, Store, MapPin, Phone, Mail, Hash, Image as ImageIcon, Loader2, Link, Upload, X, Lock, Unlock, Eye, EyeOff, Map, Instagram } from "lucide-react";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { updateRestaurantAction } from "@/app/actions/restaurant";
+
+export default function SettingsPage() {
+  const params = useParams();
+  const restaurantSlug = params.restaurantSlug as string;
+  const supabase = createClient();
+
+  const router = useRouter();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState<string | null>(null);
+  const [restaurant, setRestaurant] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    address: "",
+    city: "",
+    phone: "",
+    email: "",
+    number_of_tables: "10",
+    logo_url: "",
+    cover_image_url: "",
+    pin: "0000",
+    is_locked: false,
+    google_map_url: "",
+    instagram_url: "",
+  });
+
+  const [showPin, setShowPin] = useState(false);
+
+  useEffect(() => {
+    fetchRestaurant();
+  }, [restaurantSlug]);
+
+  const fetchRestaurant = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("slug", restaurantSlug)
+        .single();
+
+      if (error) throw error;
+      setRestaurant(data);
+      setFormData({
+        name: data.name || "",
+        slug: data.slug || "",
+        address: data.address || "",
+        city: data.city || "",
+        phone: data.phone || "",
+        email: data.email || "",
+        number_of_tables: data.number_of_tables?.toString() || "10",
+        logo_url: data.logo_url || "",
+        cover_image_url: data.cover_image_url || "",
+        pin: data.pin || "0000",
+        is_locked: data.is_locked || false,
+        google_map_url: data.google_map_url || "",
+        instagram_url: data.instagram_url || "",
+      });
+    } catch (error) {
+      console.error("Error fetching restaurant:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo_url' | 'cover_image_url') => {
+    const file = e.target.files?.[0];
+    if (!file || !restaurant) return;
+
+    setIsUploading(type);
+    try {
+      const { uploadMedia } = await import("@/lib/storage-utils");
+      const result = await uploadMedia(file, 'restaurants', restaurant.id);
+
+      if (result.success && result.publicUrl) {
+        setFormData({ ...formData, [type]: result.publicUrl });
+        toast.success("Image uploaded successfully");
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error(`Upload failed: ${error.message}`);
+    } finally {
+      setIsUploading(null);
+    }
+  };
+
+  const handleNameChange = (name: string) => {
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove non-word chars
+      .replace(/[\s_-]+/g, '-')  // Replace spaces/underscores with hyphens
+      .replace(/^-+|-+$/g, '');   // Trim hyphens from ends
+
+    setFormData({ ...formData, name, slug });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restaurant) return;
+
+    setIsSaving(true);
+    try {
+      const result = await updateRestaurantAction(restaurant.id, restaurantSlug, formData);
+      if (!result.success) throw new Error(result.error);
+
+      if (formData.slug !== restaurantSlug) {
+        // If slug changed, redirect to new settings URL
+        router.push(`/dashboard/${formData.slug}/settings`);
+      }
+
+      toast.success("Settings updated successfully!");
+    } catch (error: any) {
+      console.error("Error updating settings:", error);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#559701]" />
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto pb-12">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Restaurant Management</h1>
+          <p className="text-sm text-gray-500 mt-1">Update your restaurant profile and general settings.</p>
+        </div>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="flex items-center gap-2 bg-[#559701] hover:bg-[#4a8001] text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-[#559701]/20 disabled:opacity-50"
+        >
+          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          Save Changes
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {/* Profile Section */}
+        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-8">
+          <div className="flex items-center gap-3 pb-4 border-b border-gray-50">
+            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+              <Store className="w-5 h-5 text-[#559701]" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Restaurant Profile</h2>
+          </div>
+
+          {/* Logo & Cover Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <label className="block text-sm font-bold text-gray-700">Restaurant Logo</label>
+              <div className="flex items-center gap-6">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden group-hover:border-[#559701] transition-colors">
+                    {formData.logo_url ? (
+                      <img src={formData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <Store className="w-8 h-8 text-gray-300" />
+                    )}
+                    {isUploading === 'logo_url' && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-white" />
+                      </div>
+                    )}
+                  </div>
+                  {formData.logo_url && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, logo_url: "" })}
+                      className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow-md border border-gray-100 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={!!isUploading}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:border-[#559701] hover:text-[#559701] transition-all disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Choose Picture
+                  </button>
+                  <p className="text-[10px] text-gray-400">JPG, PNG or SVG. Max size 2MB.</p>
+                  <input
+                    type="file"
+                    ref={logoInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'logo_url')}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block text-sm font-bold text-gray-700">Cover Image</label>
+              <div className="relative group">
+                <div className="w-full h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden group-hover:border-[#559701] transition-colors">
+                  {formData.cover_image_url ? (
+                    <img src={formData.cover_image_url} alt="Cover" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-8 h-8 text-gray-300" />
+                  )}
+                  {isUploading === 'cover_image_url' && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-white" />
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={!!isUploading}
+                  className="absolute bottom-2 right-2 flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm text-white rounded-lg text-[10px] font-bold hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Change Cover
+                </button>
+                <input
+                  type="file"
+                  ref={coverInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, 'cover_image_url')}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Restaurant Name</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all"
+                value={formData.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Slug (URL)</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="my-cool-restaurant"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                />
+                <Link className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">Changes the URL: dashboard/<b>{formData.slug || '...'}</b>/settings</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Phone Number</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full px-4 py-11/12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Email Address</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Number of Tables</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  value={formData.number_of_tables}
+                  onChange={(e) => setFormData({ ...formData, number_of_tables: e.target.value })}
+                />
+                <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 md:col-span-1">
+              <label className="text-sm font-bold text-gray-700">Full Address</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">City</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+
+
+        {/* Social Media Section */}
+        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-8">
+          <div className="flex items-center gap-3 pb-4 border-b border-gray-50">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+              <Link className="w-5 h-5 text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Social Accounts</h2>
+              <p className="text-xs text-gray-400 font-medium">Link your online presence.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Google Maps URL</label>
+              <div className="relative">
+                <input
+                  type="url"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  value={formData.google_map_url}
+                  onChange={(e) => setFormData({ ...formData, google_map_url: e.target.value })}
+                  placeholder="https://maps.google.com/..."
+                />
+                <Map className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Instagram URL</label>
+              <div className="relative">
+                <input
+                  type="url"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  value={formData.instagram_url}
+                  onChange={(e) => setFormData({ ...formData, instagram_url: e.target.value })}
+                  placeholder="https://instagram.com/..."
+                />
+                <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </form>
+  );
+}

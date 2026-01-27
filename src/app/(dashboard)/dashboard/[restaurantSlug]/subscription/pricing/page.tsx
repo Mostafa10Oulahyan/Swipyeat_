@@ -1,0 +1,244 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { CreditCard, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function PricingPage() {
+    const router = useRouter();
+    const params = useParams();
+    const restaurantSlug = params.restaurantSlug as string;
+    const supabase = createClient();
+
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentPlan, setCurrentPlan] = useState<any>(null);
+    const [subscription, setSubscription] = useState<any>(null);
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
+    useEffect(() => {
+        fetchSubscriptionData();
+    }, [restaurantSlug]);
+
+    const fetchSubscriptionData = async () => {
+        try {
+            const { data: restaurant } = await supabase
+                .from("restaurants")
+                .select("id")
+                .eq("slug", restaurantSlug)
+                .single();
+
+            if (restaurant) {
+                const { data: subs } = await supabase
+                    .from("subscriptions")
+                    .select(`*, subscription_plans (*)`)
+                    .eq("restaurant_id", restaurant.id)
+                    .order("created_at", { ascending: false });
+
+                const activeSub = subs?.find((s: any) => s.is_current) || subs?.[0];
+                setSubscription(activeSub);
+                setCurrentPlan(activeSub?.subscription_plans);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const planDetails: any = {
+        free_trial: {
+            title: "Basic Starter",
+            subtitle: "Essential tools for small kiosks or food trucks.",
+            price_monthly: "0",
+            price_yearly: "0",
+            features: [
+                { text: "Up to 5 Active Tables", included: true },
+                { text: "3 Staff Accounts", included: true },
+                { text: "Basic Menu Management", included: true },
+                { text: "Daily Sales Reports", included: true },
+            ]
+        },
+        pro: {
+            title: "Pro Kitchen",
+            subtitle: "Perfect for growing single-location restaurants.",
+            price_monthly: "149",
+            price_yearly: "119",
+            features: [
+                { text: "Up to 50 Active Tables", included: true },
+                { text: "20 Staff Accounts", included: true },
+                { text: "Advanced Menu Management", included: true },
+                { text: "Email Support", included: true },
+            ]
+        },
+        premium: {
+            title: "Premium Enterprise",
+            subtitle: "Full control and AI-powered efficiency for high-volume operations.",
+            price_monthly: "299",
+            price_yearly: "239",
+            features: [
+                { text: "Unlimited Tables & Staff", included: true },
+                { text: "AI Forecasting & Demand Prediction", included: true },
+                { text: "Multi-location HQ Dashboard", included: true },
+                { text: "24/7 Priority VIP Support", included: true },
+            ]
+        }
+    };
+
+    const isPro = currentPlan?.plan_type === 'pro';
+
+    // Filter plans based on logic: If pro, hide free. If free, show all.
+    const displayPlans = [
+        { type: 'free_trial', id: 'free' },
+        { type: 'pro', id: 'pro' },
+        { type: 'premium', id: 'premium' }
+    ].filter(p => !isPro || p.type !== 'free_trial');
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-[#559701]" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-7xl mx-auto p-6 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white min-h-screen">
+            <div className="space-y-6">
+                <Link
+                    href={`/dashboard/${restaurantSlug}/subscription`}
+                    className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-2"
+                >
+                    <ChevronRight className="w-4 h-4 rotate-180" /> Back to Billing
+                </Link>
+
+                <div className="text-center space-y-4 pt-4">
+                    <h1 className="text-4xl md:text-5xl font-black text-[#1a202c] tracking-tight leading-tight">
+                        Choose the right plan for your kitchen
+                    </h1>
+                    <p className="text-gray-500 max-w-2xl mx-auto font-medium text-lg">
+                        Scale your operations with advanced AI and dedicated support.
+                    </p>
+                </div>
+            </div>
+
+            {/* Toggle */}
+            <div className="flex justify-center items-center gap-4">
+                <span className={`text-sm font-bold ${billingCycle === 'monthly' ? 'text-[#1a202c]' : 'text-gray-400'}`}>Monthly</span>
+                <button
+                    onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
+                    className="w-12 h-6 bg-gray-200 rounded-full relative transition-colors duration-200"
+                >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-200 ${billingCycle === 'yearly' ? 'left-7' : 'left-1'}`} />
+                </button>
+                <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold ${billingCycle === 'yearly' ? 'text-[#1a202c]' : 'text-gray-400'}`}>Yearly</span>
+                    <span className="text-[10px] font-black text-[#559701] bg-[#f0f9eb] px-2 py-0.5 rounded-full border border-[#e1f3d8]">SAVE 20%</span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start pt-8 pb-12">
+                {displayPlans.map((p) => {
+                    const detail = planDetails[p.type];
+                    const isCurrent = currentPlan?.plan_type === p.type;
+                    const isPremium = p.type === 'premium';
+                    const isFree = p.type === 'free_trial';
+
+                    return (
+                        <div
+                            key={p.id}
+                            className={`
+                bg-white rounded-[32px] p-10 border-2 transition-all duration-300 relative h-full flex flex-col
+                ${isPremium ? 'border-[#6fb301] shadow-2xl shadow-green-100 scale-105 z-10' : 'border-[#f2f4f7] shadow-xl shadow-gray-100/50 hover:border-gray-200'}
+              `}
+                        >
+                            {isPremium && (
+                                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#6fb301] text-white text-[10px] font-black uppercase tracking-widest px-6 py-1.5 rounded-full shadow-lg">
+                                    Best Value
+                                </span>
+                            )}
+
+                            <div className="flex flex-col h-full space-y-8">
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-xl font-black text-[#1a202c]">{detail.title}</h3>
+                                        {isCurrent && (
+                                            <span className="text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-500 px-2 py-1 rounded-md">
+                                                Current Plan
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-5xl font-black text-[#1a202c]">
+                                            ${billingCycle === 'monthly' ? detail.price_monthly : detail.price_yearly}
+                                        </span>
+                                        <span className="text-gray-400 font-bold text-lg">/month</span>
+                                    </div>
+                                    {billingCycle === 'yearly' && (p.type === 'pro' || p.type === 'premium') && (
+                                        <p className="text-xs font-bold text-[#6fb301] mt-1 animate-in fade-in slide-in-from-top-1 duration-300">
+                                            {p.type === 'pro'
+                                                ? "Billed annually — $1428/year (equivalent to $119/month)"
+                                                : "Billed annually — $2870/year (equivalent to $239/month)"}
+                                        </p>
+                                    )}
+                                    <p className="text-gray-400 text-sm font-medium leading-relaxed">
+                                        {detail.subtitle}
+                                    </p>
+                                </div>
+
+                                <div className="flex-1 space-y-5 pt-4">
+                                    {detail.features.map((f: any, i: number) => (
+                                        <div key={i} className="flex items-center gap-3">
+                                            <div className="w-5 h-5 rounded-full bg-[#f0f9eb] flex items-center justify-center flex-shrink-0">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-[#6fb301]" />
+                                            </div>
+                                            <span className="text-sm font-extrabold text-[#4a5568]">
+                                                {f.text}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="pt-8 space-y-4">
+                                    {(!isCurrent) ? (
+                                        <Link
+                                            href={`/dashboard/${restaurantSlug}/subscription/payment-method`}
+                                            className={`
+                        block text-center w-full py-4 rounded-3xl font-black transition-all text-base
+                        ${isPremium
+                                                    ? "bg-[#6fb301] hover:bg-[#5a9201] text-white shadow-xl shadow-green-100"
+                                                    : "bg-white border-2 border-[#eaecf0] hover:bg-gray-50 text-[#4a5568]"
+                                                }
+                      `}
+                                        >
+                                            Upgrade Plan
+                                        </Link>
+                                    ) : (
+                                        <button
+                                            disabled
+                                            className="w-full py-4 rounded-3xl font-black transition-all text-base bg-[#f2f4f7] text-[#98a2b3] cursor-default"
+                                        >
+                                            Active
+                                        </button>
+                                    )}
+
+                                    {isPremium && (
+                                        <div className="text-center space-y-2">
+                                            <div className="flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#6fb301]">
+                                                <CheckCircle2 className="w-3 h-3" /> Secure Payment Processing
+                                            </div>
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-[#98a2b3]">
+                                                Cancel anytime • Pro-rated refund
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
