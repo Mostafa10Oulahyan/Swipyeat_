@@ -110,8 +110,10 @@ export async function getAnalyticsDataAction(restaurantId: string, timeframe: 't
         }, 0);
         const avgPrepTime = ordersWithPrepTimes.length > 0 ? Math.round(totalPrepMinutes / ordersWithPrepTimes.length) : 0;
 
-        // Calculate Canceled Orders Count
-        const canceledOrders = orders.filter(o => o.status === 'canceled').length;
+        // Calculate Canceled Orders Count & Revenue
+        const canceledOrdersList = orders.filter(o => o.status === 'canceled');
+        const canceledOrders = canceledOrdersList.length;
+        const canceledRevenue = canceledOrdersList.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
 
         // Order Accuracy (Completed vs Total excluding pending/preparing/ready)
         const finishedOrders = orders.filter(o => ['served', 'completed', 'canceled'].includes(o.status));
@@ -160,6 +162,7 @@ export async function getAnalyticsDataAction(restaurantId: string, timeframe: 't
                 avgPrepTime: avgPrepTime + "m",
                 orderAccuracy: orderAccuracy.toFixed(1) + "%",
                 canceledOrders,
+                canceledRevenue,
                 statusBreakdown,
                 topStaff,
 

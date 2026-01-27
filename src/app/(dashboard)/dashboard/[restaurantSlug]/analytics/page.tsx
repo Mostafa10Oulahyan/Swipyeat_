@@ -156,12 +156,12 @@ export default function AnalyticsPage() {
                         bg: "bg-orange-50"
                     },
                     {
-                        label: "Revenue",
-                        value: `${(data?.totalRevenue || 0).toLocaleString()} DH`,
-                        trend: "+3.2%",
-                        icon: TrendingUp,
-                        color: "bg-[#559701]",
-                        bg: "bg-green-50"
+                        label: "Cancelled Orders",
+                        value: `${data?.canceledOrders || 0}`,
+                        trend: "0%",
+                        icon: AlertCircle,
+                        color: "bg-red-500",
+                        bg: "bg-red-50"
                     },
                     {
                         label: "Order Accuracy",
@@ -342,18 +342,16 @@ export default function AnalyticsPage() {
                             <p className="text-sm text-gray-400 font-medium">Real-time table status</p>
                         </div>
                         <div className="relative flex items-center justify-center mb-8">
-                            <div className="w-48 h-48 rounded-full border-[16px] border-gray-50 flex flex-col items-center justify-center relative">
-                                <div
-                                    className="absolute inset-0 rounded-full border-[16px] border-[#559701] border-l-transparent border-b-transparent transition-all duration-1000"
-                                    style={{ transform: `rotate(${((data?.liveOccupancy?.percentage || 0) / 100) * 360}deg)` }} // Dynamic rotation based on percentage (simplified visual)
-                                />
-                                {/* Circular Progress - Simplified with solid colors for now or SVG for better control */}
+                            <div className="w-48 h-48 rounded-full flex flex-col items-center justify-center relative">
+                                {/* Circular Progress - SVG based */}
                                 <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#f9fafb" strokeWidth="10" />
+                                    {/* Background Circle */}
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="#f9fafb" strokeWidth="8" />
+                                    {/* Progress Circle */}
                                     <circle
-                                        cx="50" cy="50" r="40" fill="none" stroke="#559701" strokeWidth="10"
-                                        strokeDasharray="251.2"
-                                        strokeDashoffset={251.2 - (251.2 * (data?.liveOccupancy?.percentage || 0)) / 100}
+                                        cx="50" cy="50" r="45" fill="none" stroke="#559701" strokeWidth="8"
+                                        strokeDasharray="282.7" // 2 * pi * 45
+                                        strokeDashoffset={282.7 - (282.7 * (data?.liveOccupancy?.percentage || 0)) / 100}
                                         className="transition-all duration-1000 ease-out"
                                         strokeLinecap="round"
                                     />
