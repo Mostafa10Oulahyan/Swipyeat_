@@ -229,18 +229,7 @@ export default function ProfileSettingsModal({ user, onClose, onSave }: ProfileS
                         </div>
                     </div>
 
-                    {!isReadOnly && (
-                        /* Security Badge - Only show if editable or if relevant info exists? Keeping it visible for now as info */
-                        <div className="bg-[#f0fff4] border border-[#c6f6d5] p-4 rounded-xl flex items-start gap-4">
-                            <div className="p-2 bg-[#c6f6d5] rounded-full text-[#2f855a]">
-                                <ShieldCheck className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-[#2f855a] mb-1">Two-Factor Authentication Enabled</h4>
-                                <p className="text-xs text-[#48bb78]">Your account is secured with Two-Factor Authentication. <span className="underline cursor-pointer font-bold hover:text-[#276749]">Manage Security</span></p>
-                            </div>
-                        </div>
-                    )}
+
 
                 </div>
 

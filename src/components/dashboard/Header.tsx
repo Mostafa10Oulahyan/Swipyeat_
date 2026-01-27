@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Search, Bell } from "lucide-react";
 import ProfileSettingsModal from "./ProfileSettingsModal";
 import { updateProfileAction } from "@/app/actions/profile";
 import { useProfile, useAuth } from "@/contexts/AuthProvider";
@@ -55,16 +54,7 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
 
                 {/* Right Section */}
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Search Button - hidden on very small screens */}
-                    <button className="hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
-                        <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                    </button>
 
-                    {/* Notifications */}
-                    <button className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
-                        <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                        <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-2 h-2 bg-[#f17900] rounded-full"></span>
-                    </button>
 
                     {/* User Profile */}
                     <div
