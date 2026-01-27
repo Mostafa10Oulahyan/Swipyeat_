@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
 
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8 bg-gray-50/50 min-h-screen">
+    <div className="w-full mx-auto p-6 space-y-8 bg-gray-50/50 min-h-screen">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
         <div>
@@ -183,8 +183,8 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="space-y-8">
+        <div className="space-y-8">
           {/* Current Plan Card */}
           <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
@@ -234,8 +234,8 @@ export default function SubscriptionPage() {
                 )}
               </div>
 
-              {/* Dates Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-5 border border-gray-100">
+              {/* Dates Grid - Made responsive */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-5 border border-gray-100 max-w-2xl">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Started On</p>
                   <p className="font-bold text-gray-700">
@@ -262,7 +262,7 @@ export default function SubscriptionPage() {
           {/* Usage Metrics Grid */}
           <div className="space-y-6">
             <h3 className="text-xl font-extrabold text-gray-900">Usage Metrics</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <UsageCard
                 label="Tables"
                 current={data.usage.tables.current}
