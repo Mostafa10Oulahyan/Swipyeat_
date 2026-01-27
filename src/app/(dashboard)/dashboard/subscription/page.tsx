@@ -172,7 +172,7 @@ export default function SubscriptionPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
-            Save 20% on Yearly
+            Save 10% on Yearly
           </span>
           <Link
             href={`/dashboard/subscription/pricing`}
@@ -189,38 +189,75 @@ export default function SubscriptionPage() {
           <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
 
-            <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-4">
+            <div className="relative flex flex-col justify-between gap-6">
+              {/* Header: Plan Name & Status */}
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-gray-900">{plan?.name || "Free Trial"}</h2>
+                  <h2 className="text-3xl font-extrabold text-gray-900">{plan?.name || "Free Trial"}</h2>
                   <span className={`
-                    text-[10px] uppercase tracking-widest font-black px-2 py-1 rounded-md
+                    text-[10px] uppercase tracking-widest font-black px-3 py-1.5 rounded-lg border
                     ${(subscription?.status === 'canceled' || subscription?.status === 'cancelled')
-                      ? "bg-red-500 text-white"
-                      : "bg-green-500 text-white"}
+                      ? "bg-red-50 text-red-600 border-red-100"
+                      : "bg-green-50 text-green-600 border-green-100"}
                   `}>
                     {(subscription?.status === 'canceled' || subscription?.status === 'cancelled') ? "CANCELLED" : (subscription?.status || "Active")}
                   </span>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-gray-500 font-bold text-sm">
-                    ${plan?.price_monthly || "0"}/mo <span className="mx-2 text-gray-200">|</span>
-                    <span>Next billing date:
-                      {subscription?.ends_at ? new Date(subscription.ends_at).toLocaleDateString() : " October 12, 2023"}
-                    </span>
+              </div>
+
+              {/* Price & Cycle Calculation */}
+              <div className="space-y-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-gray-900">
+                    {(() => {
+                      const cycle = subscription?.billing_cycle || 'monthly';
+                      const monthlyPrice = parseFloat(plan?.price_monthly || "0");
+
+                      if (cycle === '6 months') {
+                        return `${(monthlyPrice * 6).toFixed(2)}`;
+                      }
+                      if (cycle === 'yearly') {
+                        return `${plan?.price_yearly || (monthlyPrice * 12).toFixed(2)}`;
+                      }
+                      return `${monthlyPrice.toFixed(2)}`;
+                    })()} <span className="text-2xl">DH</span>
+                  </span>
+                  <span className="text-gray-500 font-bold uppercase text-xs tracking-wider">
+                    / {subscription?.billing_cycle || 'month'}
+                  </span>
+                </div>
+                {/* Monthly Breakdown for longer cycles */}
+                {subscription?.billing_cycle === '6 months' && (
+                  <p className="text-sm font-medium text-gray-500 mt-1">
+                    ({parseFloat(plan?.price_monthly || "0").toFixed(2)} DH / month)
+                  </p>
+                )}
+              </div>
+
+              {/* Dates Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Started On</p>
+                  <p className="font-bold text-gray-700">
+                    {subscription?.started_at ? new Date(subscription.started_at).toLocaleDateString(undefined, {
+                      year: 'numeric', month: 'long', day: 'numeric'
+                    }) : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">
+                    {subscription?.auto_renew ? "Renews On" : "Expires On"}
+                  </p>
+                  <p className="font-bold text-gray-700">
+                    {subscription?.ends_at ? new Date(subscription.ends_at).toLocaleDateString(undefined, {
+                      year: 'numeric', month: 'long', day: 'numeric'
+                    }) : "-"}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  href={plan?.plan_type === 'free_trial' ? '#' : `/dashboard/subscription/downgrade`}
-                  className={`px-6 py-2.5 border border-gray-200 font-bold rounded-xl text-gray-700 transition-colors ${plan?.plan_type === 'free_trial' ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'hover:bg-gray-50'}`}
-                >
-                  Cancel
-                </Link>
-              </div>
             </div>
           </div>
+
 
           {/* Usage Metrics Grid */}
           <div className="space-y-6">
@@ -254,123 +291,7 @@ export default function SubscriptionPage() {
             </div>
           </div>
 
-          {/* Billing History */}
-          <div className="space-y-6">
-            <h3 className="text-xl font-extrabold text-gray-900">Billing History</h3>
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50/50 border-b border-gray-100">
-                  <tr>
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Date</th>
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Amount</th>
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-right">Receipt</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {[
-                    { date: "Sep 12, 2023", amount: "$49.00", status: "Paid" },
-                    { date: "Aug 12, 2023", amount: "$49.00", status: "Paid" },
-                    { date: "Jul 12, 2023", amount: "$49.00", status: "Paid" },
-                  ].map((inv, i) => (
-                    <tr key={i} className="hover:bg-gray-50/30 transition-colors">
-                      <td className="px-8 py-5 font-bold text-gray-700">{inv.date}</td>
-                      <td className="px-8 py-5 font-bold text-gray-700">{inv.amount}</td>
-                      <td className="px-8 py-5">
-                        <span className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                          <span className="text-sm font-bold text-gray-700">{inv.status}</span>
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <button className="text-green-600 hover:text-green-700 transition-colors">
-                          <Download className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
 
-        <div className="space-y-8">
-          {/* Payment Method */}
-          <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-6">
-            <h3 className="text-lg font-bold text-gray-900">Payment Method</h3>
-            <div className="aspect-[1.6/1] bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-white/5 rounded-full" />
-              <div className="flex justify-between items-start relative z-10">
-                <CreditCard className="w-10 h-10 text-white/40" />
-                <span className="text-xs font-black tracking-widest uppercase opacity-40">
-                  {savedCard?.brand || "VISA"}
-                </span>
-              </div>
-              <div className="space-y-1 relative z-10">
-                <p className="text-xl font-mono tracking-[0.2em] opacity-90">
-                  •••• •••• •••• {savedCard?.last4 || "4242"}
-                </p>
-                <div className="flex justify-between items-end">
-                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">
-                    {savedCard?.name ? savedCard.name.toUpperCase() : (data.restaurant.name.toUpperCase() + " INC.")}
-                  </p>
-                  <p className="text-[10px] font-bold opacity-40">
-                    {savedCard?.expiry || "12/25"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 font-medium">Default payment method</p>
-              <Link
-                href={`/dashboard/subscription/payment-method`}
-                className="text-green-600 font-bold text-sm hover:underline"
-              >
-                Edit
-              </Link>
-            </div>
-          </div>
-
-          {/* Upsell Card */}
-          <div className="bg-black rounded-3xl p-8 text-white space-y-8 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#559701]/20 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-[#559701]/30 transition-all" />
-            <div className="w-12 h-12 bg-[#559701]/20 rounded-2xl flex items-center justify-center">
-              <Crown className="w-6 h-6 text-[#559701]" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-bold leading-tight">Unlock Unlimited Kitchens</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">Upgrade to Premium to get unlimited staff, 100+ tables, and priority 24/7 technical support.</p>
-            </div>
-            <ul className="space-y-3">
-              {[
-                "Unlimited Monthly Orders",
-                "Advanced Analytics Dashboard",
-                "Multi-unit Restaurant Sync"
-              ].map((feature, i) => (
-                <li key={i} className="flex items-center gap-3 text-xs font-bold text-gray-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#559701]" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <div className="space-y-4 pt-4">
-              <button className="w-full bg-[#559701] hover:bg-[#4a8001] py-3 rounded-xl font-bold transition-all shadow-lg shadow-[#559701]/20 hover:scale-[1.02]">
-                Get 20% Off Premium
-              </button>
-              <p className="text-center text-[10px] uppercase tracking-widest font-black text-gray-500">Limited time offer</p>
-            </div>
-          </div>
-
-          {/* Help/Support */}
-          <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-4">
-            <h4 className="font-bold text-gray-900">Need help?</h4>
-            <p className="text-sm text-gray-500 leading-relaxed font-medium">Have questions about your billing or want a custom enterprise plan?</p>
-            <button className="flex items-center gap-3 text-sm font-bold text-gray-700 hover:text-green-600 transition-colors w-full p-2 hover:bg-green-50 rounded-lg group">
-              <HelpCircle className="w-5 h-5 text-gray-400 group-hover:text-green-600" />
-              Contact Billing Support
-            </button>
-          </div>
         </div>
       </div>
     </div>

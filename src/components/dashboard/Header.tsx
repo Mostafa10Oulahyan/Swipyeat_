@@ -41,14 +41,14 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
 
     return (
         <>
-            <header className="h-14 sm:h-16 bg-white flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 border-b border-gray-100 lg:border-b-0">
+            <header className="h-12 sm:h-14 bg-white flex items-center justify-between px-3 sm:px-4 sticky top-0 z-30 border-b border-gray-100 lg:border-b-0">
                 {/* Left - Page Title + Status */}
                 <div className="flex items-center gap-2 sm:gap-3 ml-12 lg:ml-0">
-                    <h1 className="text-base sm:text-lg lg:text-xl font-bold text-[#1a202c] truncate max-w-[120px] sm:max-w-none">{title}</h1>
+                    <h1 className="text-sm sm:text-base lg:text-lg font-bold text-[#1a202c] truncate max-w-[120px] sm:max-w-none">{title}</h1>
                     {showStatus && (
-                        <span className="hidden sm:inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[#f0fff4] border border-[#c6f6d5]">
-                            <span className="w-2 h-2 bg-[#48bb78] rounded-full animate-pulse"></span>
-                            <span className="text-[10px] sm:text-xs font-medium text-[#276749]">System Online</span>
+                        <span className="hidden sm:inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full bg-[#f0fff4] border border-[#c6f6d5]">
+                            <span className="w-1.5 h-1.5 bg-[#48bb78] rounded-full animate-pulse"></span>
+                            <span className="text-[9px] sm:text-[10px] font-medium text-[#276749]">System Online</span>
                         </span>
                     )}
                 </div>

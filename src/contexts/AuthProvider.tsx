@@ -41,6 +41,9 @@ interface Restaurant {
         plan_type: "free_trial" | "pro";
         status: "active" | "canceled" | "expired" | "suspended";
         is_current: boolean;
+        max_tables?: number;
+        max_menu_items?: number;
+        ends_at?: string | null;
     } | null;
 }
 
@@ -159,7 +162,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         subscriptions(
                             is_current,
                             status,
-                            subscription_plans(plan_type)
+                            ends_at,
+                        subscription_plans(plan_type, max_tables, max_menu_items)
                         )
                     `)
                     .eq("id", restaurantId)
@@ -188,6 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         plan_type: planInfo?.plan_type || "free_trial",
                         status: currentSub.status,
                         is_current: currentSub.is_current,
+                        max_tables: planInfo?.max_tables,
+                        max_menu_items: planInfo?.max_menu_items,
+                        ends_at: currentSub.ends_at,
                     };
                 }
             }

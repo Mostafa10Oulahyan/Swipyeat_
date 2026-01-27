@@ -15,6 +15,7 @@ export default function PricingPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [currentPlan, setCurrentPlan] = useState<any>(null);
     const [subscription, setSubscription] = useState<any>(null);
+    const [allPlans, setAllPlans] = useState<any[]>([]);
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
     useEffect(() => {
@@ -27,6 +28,7 @@ export default function PricingPage() {
         if (!restaurant) return;
 
         try {
+            // Fetch current subscription
             const { data: subs } = await supabase
                 .from("subscriptions")
                 .select(`*, subscription_plans (*)`)
@@ -36,6 +38,17 @@ export default function PricingPage() {
             const activeSub = subs?.find((s: any) => s.is_current) || subs?.[0];
             setSubscription(activeSub);
             setCurrentPlan(activeSub?.subscription_plans);
+
+            // Fetch all active plans
+            const { data: plans } = await supabase
+                .from("subscription_plans")
+                .select("*")
+                .eq("is_active", true)
+                .order("price_monthly", { ascending: true }); // Assume price sort
+
+            if (plans) {
+                setAllPlans(plans);
+            }
         } catch (e) {
             console.error(e);
         } finally {
@@ -130,16 +143,46 @@ export default function PricingPage() {
                 </button>
                 <div className="flex items-center gap-2">
                     <span className={`text-sm font-bold ${billingCycle === 'yearly' ? 'text-[#1a202c]' : 'text-gray-400'}`}>Yearly</span>
-                    <span className="text-[10px] font-black text-[#559701] bg-[#f0f9eb] px-2 py-0.5 rounded-full border border-[#e1f3d8]">SAVE 20%</span>
+                    <span className="text-[10px] font-black text-[#559701] bg-[#f0f9eb] px-2 py-0.5 rounded-full border border-[#e1f3d8]">SAVE 10%</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start pt-8 pb-12">
-                {displayPlans.map((p) => {
-                    const detail = planDetails[p.type];
-                    const isCurrent = currentPlan?.plan_type === p.type;
-                    const isPremium = p.type === 'premium';
-                    const isFree = p.type === 'free_trial';
+                {allPlans.map((p) => {
+                    const isCurrent = currentPlan?.plan_type === p.plan_type;
+                    const isPremium = p.plan_type === 'premium';
+
+                    // Fallback features if DB features are empty/invalid
+                    let featuresList = [];
+                    try {
+                        featuresList = p.features && typeof p.features === 'object' && Array.isArray(p.features)
+                            ? p.features
+                            : (JSON.parse(p.features || '[]'));
+                    } catch (e) {
+                        // Fallback based on type if parse fails
+                        if (p.plan_type === 'free_trial') featuresList = [
+                            { text: "Up to 5 Active Tables", included: true },
+                            { text: "3 Staff Accounts", included: true }
+                        ];
+                        else if (p.plan_type === 'pro') featuresList = [
+                            { text: "Up to 50 Active Tables", included: true },
+                            { text: "20 Staff Accounts", included: true },
+                            { text: "Advanced Menu Management", included: true }
+                        ];
+                        else featuresList = [ // Premium fallback
+                            { text: "Unlimited Tables & Staff", included: true },
+                            { text: "AI Forecasting", included: true },
+                            { text: "Multi-location HQ", included: true }
+                        ];
+                    }
+
+                    // Ensure features format
+                    if (featuresList.length === 0) {
+                        if (p.plan_type === 'free_trial') featuresList = [{ text: "Basic Features", included: true }];
+                        else if (p.plan_type === 'pro') featuresList = [{ text: "Advanced Features", included: true }];
+                        else featuresList = [{ text: "All Premium Features", included: true }];
+                    }
+
 
                     return (
                         <div
@@ -158,7 +201,7 @@ export default function PricingPage() {
                             <div className="flex flex-col h-full space-y-8">
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-xl font-black text-[#1a202c]">{detail.title}</h3>
+                                        <h3 className="text-xl font-black text-[#1a202c]">{p.name}</h3>
                                         {isCurrent && (
                                             <span className="text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-500 px-2 py-1 rounded-md">
                                                 Current Plan
@@ -167,30 +210,28 @@ export default function PricingPage() {
                                     </div>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-5xl font-black text-[#1a202c]">
-                                            ${billingCycle === 'monthly' ? detail.price_monthly : detail.price_yearly}
+                                            {billingCycle === 'monthly' ? p.price_monthly : p.price_yearly} <span className="text-xl">DH</span>
                                         </span>
-                                        <span className="text-gray-400 font-bold text-lg">/month</span>
+                                        <span className="text-gray-400 font-bold text-lg">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
                                     </div>
-                                    {billingCycle === 'yearly' && (p.type === 'pro' || p.type === 'premium') && (
+                                    {billingCycle === 'yearly' && (
                                         <p className="text-xs font-bold text-[#6fb301] mt-1 animate-in fade-in slide-in-from-top-1 duration-300">
-                                            {p.type === 'pro'
-                                                ? "Billed annually — $1428/year (equivalent to $119/month)"
-                                                : "Billed annually — $2870/year (equivalent to $239/month)"}
+                                            Billed annually — {p.price_yearly} DH/year (equivalent to {(p.price_yearly / 12).toFixed(0)} DH/month)
                                         </p>
                                     )}
                                     <p className="text-gray-400 text-sm font-medium leading-relaxed">
-                                        {detail.subtitle}
+                                        {p.description || "The best plan for your needs."}
                                     </p>
                                 </div>
 
                                 <div className="flex-1 space-y-5 pt-4">
-                                    {detail.features.map((f: any, i: number) => (
+                                    {featuresList.map((f: any, i: number) => (
                                         <div key={i} className="flex items-center gap-3">
                                             <div className="w-5 h-5 rounded-full bg-[#f0f9eb] flex items-center justify-center flex-shrink-0">
                                                 <CheckCircle2 className="w-3.5 h-3.5 text-[#6fb301]" />
                                             </div>
                                             <span className="text-sm font-extrabold text-[#4a5568]">
-                                                {f.text}
+                                                {f.text || f}
                                             </span>
                                         </div>
                                     ))}
@@ -198,18 +239,27 @@ export default function PricingPage() {
 
                                 <div className="pt-8 space-y-4">
                                     {(!isCurrent) ? (
-                                        <Link
-                                            href={`/dashboard/subscription/payment-method`}
-                                            className={`
-                        block text-center w-full py-4 rounded-3xl font-black transition-all text-base
-                        ${isPremium
-                                                    ? "bg-[#6fb301] hover:bg-[#5a9201] text-white shadow-xl shadow-green-100"
-                                                    : "bg-white border-2 border-[#eaecf0] hover:bg-gray-50 text-[#4a5568]"
-                                                }
-                      `}
-                                        >
-                                            Upgrade Plan
-                                        </Link>
+                                        p.plan_type === 'free_trial' ? (
+                                            <button
+                                                disabled
+                                                className="w-full py-4 rounded-3xl font-black transition-all text-base bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            >
+                                                Free Trial
+                                            </button>
+                                        ) : (
+                                            <Link
+                                                href={`/dashboard/subscription/payment-method?plan=${p.id}&cycle=${billingCycle}`}
+                                                className={`
+                            block text-center w-full py-4 rounded-3xl font-black transition-all text-base
+                            ${isPremium
+                                                        ? "bg-[#6fb301] hover:bg-[#5a9201] text-white shadow-xl shadow-green-100"
+                                                        : "bg-white border-2 border-[#eaecf0] hover:bg-gray-50 text-[#4a5568]"
+                                                    }
+                          `}
+                                            >
+                                                Upgrade Plan
+                                            </Link>
+                                        )
                                     ) : (
                                         <button
                                             disabled

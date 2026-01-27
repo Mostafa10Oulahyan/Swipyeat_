@@ -218,15 +218,15 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] flex bg-gray-50/50 overflow-hidden font-sans">
+    <div className="h-[calc(100vh-6rem)] flex bg-gray-50/50 overflow-hidden font-sans rounded-2xl border border-gray-200 shadow-sm">
       {/* LEFT PANEL: Grid of Active Orders */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-gray-200">
+      <div className="flex-1 flex flex-col min-w-0 border-r border-gray-200 bg-white">
         {/* Header - REMOVED Filter Button */}
-        <div className="px-8 py-6 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10">
+        <div className="px-6 py-4 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">Active Orders</h1>
-              <span className="text-sm font-medium text-green-600 bg-green-50 px-2.5 py-0.5 rounded-full border border-green-100">
+              <h1 className="text-xl font-bold text-gray-900">Active Orders</h1>
+              <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
                 {filteredOrders.length} Results
               </span>
             </div>
@@ -238,23 +238,23 @@ export default function OrdersPage() {
               setIsLoading(true);
               if (restaurant) fetchOrders(restaurant.id).finally(() => setIsLoading(false));
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-all active:scale-[0.98]"
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition-all active:scale-[0.98]"
           >
-            <RotateCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RotateCcw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
         </div>
 
         {/* Filter Chips */}
-        <div className="px-8 py-4 flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide bg-gray-50/50">
+        <div className="px-6 py-3 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide bg-gray-50/50 border-b border-gray-100">
           {STATUS_FILTERS.map((status) => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm transition-all
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all flex-shrink-0
                 ${filterStatus === status
                   ? 'bg-green-600 text-white shadow-md transform scale-105'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'}
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}
               `}
             >
               {status}
@@ -264,8 +264,8 @@ export default function OrdersPage() {
         </div>
 
         {/* Orders Grid */}
-        <div className="p-8 pt-2 flex-1 overflow-y-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="p-6 pt-4 flex-1 overflow-y-auto bg-gray-50/30">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginatedOrders.map((order) => {
               const isActive = selectedOrderId === order.id;
               const isLate = parseInt(order.elapsedTime) > 20;
@@ -274,29 +274,29 @@ export default function OrdersPage() {
                 <div
                   key={order.id}
                   onClick={() => setSelectedOrderId(order.id)}
-                  className={`relative p-5 rounded-2xl border-2 transition-all cursor-pointer bg-white group hover:shadow-lg
+                  className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white group hover:shadow-lg
                     ${isActive ? "border-[#559701] shadow-md ring-1 ring-[#559701]/20" : "border-gray-100 hover:border-[#559701]/50"}
                   `}
                 >
                   {isActive && <div className="absolute top-0 left-0 bottom-0 w-1 bg-[#559701] rounded-l-2xl"></div>}
 
-                  <div className="flex justify-between items-start mb-6">
+                  <div className="flex justify-between items-start mb-4">
                     <div>
-                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Table</span>
-                      <h3 className="text-xl font-bold text-gray-900 mt-0.5">{order.table}</h3>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Table</span>
+                      <h3 className="text-lg font-bold text-gray-900 mt-0.5">{order.table}</h3>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(order.status)}`}>
+                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wide border ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-gray-50 pt-4">
+                  <div className="flex items-center justify-between border-t border-gray-50 pt-3">
                     <div className="flex items-center gap-2 text-gray-600">
-                      <Layers className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium">{order.items.reduce((acc: number, i: any) => acc + i.quantity, 0)} Items</span>
+                      <Layers className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="text-xs font-bold">{order.items.reduce((acc: number, i: any) => acc + i.quantity, 0)} Items</span>
                     </div>
-                    <div className={`flex items-center gap-1.5 text-sm font-bold ${isLate ? 'text-red-500' : 'text-gray-400'}`}>
-                      <Clock className="w-4 h-4" />
+                    <div className={`flex items-center gap-1.5 text-xs font-bold ${isLate ? 'text-red-500' : 'text-gray-400'}`}>
+                      <Clock className="w-3.5 h-3.5" />
                       {order.elapsedTime}
                     </div>
                   </div>
@@ -308,8 +308,8 @@ export default function OrdersPage() {
 
         {/* Creative Pagination Footer */}
         {totalPages > 1 && (
-          <div className="p-4 bg-white border-t border-gray-200 flex items-center justify-between px-8">
-            <span className="text-sm text-gray-500 font-medium">
+          <div className="p-3 bg-white border-t border-gray-200 flex items-center justify-between px-6">
+            <span className="text-xs text-gray-500 font-bold">
               Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredOrders.length)} of {filteredOrders.length}
             </span>
 
@@ -317,7 +317,7 @@ export default function OrdersPage() {
               <button
                 onClick={() => setCurrentPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
               >
                 <ChevronLeft className="w-4 h-4 text-gray-600" />
               </button>
@@ -327,10 +327,10 @@ export default function OrdersPage() {
                   .filter(p => p === 1 || p === totalPages || Math.abs(currentPage - p) <= 1)
                   .map((page, idx, arr) => (
                     <div key={page} className="flex items-center">
-                      {idx > 0 && arr[idx - 1] !== page - 1 && <span className="text-gray-400 px-2">...</span>}
+                      {idx > 0 && arr[idx - 1] !== page - 1 && <span className="text-gray-400 px-2 text-xs">...</span>}
                       <button
                         onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-lg text-sm font-bold transition-all mx-0.5
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all mx-0.5
                                             ${currentPage === page
                             ? 'bg-[#559701] text-white shadow-md'
                             : 'text-gray-500 hover:bg-white hover:text-[#559701]'}
@@ -346,7 +346,7 @@ export default function OrdersPage() {
               <button
                 onClick={() => setCurrentPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
               >
                 <ChevronRight className="w-4 h-4 text-gray-600" />
               </button>
@@ -356,66 +356,66 @@ export default function OrdersPage() {
       </div>
 
       {/* RIGHT PANEL: Advanced Order Detail */}
-      <div className="w-[480px] bg-white border-l border-gray-200 flex flex-col shadow-xl z-20">
+      <div className="w-[350px] lg:w-[400px] bg-white border-l border-gray-200 flex flex-col shadow-xl z-20 transition-all duration-300">
         {selectedOrder ? (
           <>
             {/* Detail Header */}
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-900">Advanced Order Detail</h2>
-                <button className="text-gray-400 hover:text-gray-600"><MoreVertical className="w-5 h-5" /></button>
+            <div className="p-5 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-bold text-gray-900">Order Detail</h2>
+                <button className="text-gray-400 hover:text-gray-600"><MoreVertical className="w-4 h-4" /></button>
               </div>
 
               {/* Staff Card REMOVED as requested */}
               {/* <div className="bg-gray-50 p-4 rounded-xl flex items-center justify-between mb-6">...</div> */}
-              <div className="bg-gray-50/50 p-3 rounded-xl mb-6 border border-gray-100 flex items-center justify-between">
+              <div className="bg-gray-50/50 p-3 rounded-xl mb-5 border border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-500">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Elapsed Time</span>
+                  <Clock className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Elapsed Time</span>
                 </div>
                 <span className="text-sm font-bold text-gray-900">{selectedOrder.elapsedTime}</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Order No.</span>
-                  <span className="text-base font-bold text-gray-900">{selectedOrder.orderNumber}</span>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Order #</span>
+                  <span className="text-sm font-bold text-gray-900 break-all">{selectedOrder.orderNumber && selectedOrder.orderNumber.length > 8 ? selectedOrder.orderNumber.substring(0, 6) + '...' : selectedOrder.orderNumber}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Table</span>
-                  <span className="text-base font-bold text-gray-900">{selectedOrder.table}</span>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Table</span>
+                  <span className="text-sm font-bold text-gray-900">{selectedOrder.table}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Total</span>
-                  <span className="text-base font-bold text-green-600">{selectedOrder.total.toFixed(2)} DH</span>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Total</span>
+                  <span className="text-sm font-bold text-green-600">{selectedOrder.total.toFixed(2)} DH</span>
                 </div>
               </div>
             </div>
 
             {/* Timeline & Details Scroll */}
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-6">
               {/* Notes Section - New */}
               {(selectedOrder.customerNote || selectedOrder.waiterNotes) && (
                 <div className="mb-6 space-y-3">
                   {selectedOrder.customerNote && (
                     <div className="bg-orange-50 p-3 rounded-lg border border-orange-100">
                       <span className="text-[10px] font-bold text-orange-600 uppercase block mb-1">Customer Note</span>
-                      <p className="text-sm text-gray-700 italic">"{selectedOrder.customerNote}"</p>
+                      <p className="text-xs text-gray-700 italic">"{selectedOrder.customerNote}"</p>
                     </div>
                   )}
                   {selectedOrder.waiterNotes && (
                     <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
                       <span className="text-[10px] font-bold text-blue-600 uppercase block mb-1">Waiter Note</span>
-                      <p className="text-sm text-gray-700 italic">"{selectedOrder.waiterNotes}"</p>
+                      <p className="text-xs text-gray-700 italic">"{selectedOrder.waiterNotes}"</p>
                     </div>
                   )}
                 </div>
               )}
               {/* Live Time Event Workflow */}
-              <div className="mb-8">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5" />
-                  Live Time Event Workflow
+              <div className="mb-6">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Clock className="w-3 h-3" />
+                  Live Workflow
                 </h3>
                 <div className="pl-2">
                   {selectedOrder.timeline.map((event: any, idx: number) => (
@@ -431,17 +431,17 @@ export default function OrdersPage() {
               </div>
 
               {/* Detailed Event Log */}
-              <div className="border-t border-gray-100 pt-6">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Layers className="w-3.5 h-3.5" />
-                  Detailed Event Log
+              <div className="border-t border-gray-100 pt-5">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Layers className="w-3 h-3" />
+                  Event Log
                 </h3>
                 <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-[10px] sm:text-xs">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-100">
-                        <th className="text-left py-2.5 px-3 font-bold text-gray-600 uppercase tracking-wider">Event</th>
-                        <th className="text-right py-2.5 px-3 font-bold text-gray-600 uppercase tracking-wider">Time</th>
+                        <th className="text-left py-2 px-3 font-bold text-gray-600 uppercase tracking-wider">Event</th>
+                        <th className="text-right py-2 px-3 font-bold text-gray-600 uppercase tracking-wider">Time</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -449,8 +449,8 @@ export default function OrdersPage() {
                         .filter((event: any) => event.time)
                         .map((event: any, idx: number) => (
                           <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-white transition-colors">
-                            <td className="py-2.5 px-3 font-medium text-gray-700">Status: {event.status}</td>
-                            <td className="py-2.5 px-3 text-right text-gray-600 font-mono">{event.time}</td>
+                            <td className="py-2 px-3 font-medium text-gray-700">{event.status}</td>
+                            <td className="py-2 px-3 text-right text-gray-600 font-mono">{event.time}</td>
                           </tr>
                         ))}
                     </tbody>
@@ -459,13 +459,12 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-white space-y-3">
+            <div className="p-4 border-t border-gray-100 bg-white space-y-2">
               {selectedOrder.status !== 'CANCELLED' && (
                 <button
                   onClick={async () => {
                     if (!restaurant || !selectedOrder) return;
-
-                    // Determine next status based on current status
+                    // ... (existing logic)
                     let nextStatus = 'SERVED';
                     if (selectedOrder.status === 'ordered' || selectedOrder.status === 'PENDING') nextStatus = 'CONFIRMED';
                     else if (selectedOrder.status === 'CONFIRMED') nextStatus = 'PREPARING';
@@ -485,8 +484,6 @@ export default function OrdersPage() {
                       return;
                     }
 
-                    // For PAID status, we might want to capture payment method (Cash by default or prompt)
-                    // For now, we'll default to Cash as per request implication "Facture just with cash" or similar
                     const paymentDetails = nextStatus === 'PAID' ? { paymentMethod: 'Cash', customerEmail: '' } : undefined;
 
                     const result = await updateOrderStatusAction(
@@ -499,15 +496,15 @@ export default function OrdersPage() {
                     if (result.success) {
                       toast.success(`Order marked as ${nextStatus.toLowerCase()}`);
                       if (nextStatus === 'PAID') {
-                        setSelectedOrderId(null); // Clear selection as it will vanish
+                        setSelectedOrderId(null);
                       }
                     } else {
                       toast.error("Failed to update order");
                     }
                   }}
-                  className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]
+                  className={`w-full py-3 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]
                   ${(selectedOrder.status === 'PAID' || selectedOrder.status === 'CANCELLED')
-                      ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed hidden' // Hide if already done/archived
+                      ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed hidden'
                       : 'bg-[#559701] hover:bg-[#4a8501] text-white shadow-[#559701]/20'}`}
                 >
                   <CheckCircle2 className="w-5 h-5" />
@@ -519,18 +516,18 @@ export default function OrdersPage() {
                 </button>
               )}
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {selectedOrder.status === 'CANCELLED' ? (
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="flex-1 py-3 border border-red-100 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                    <Trash2 className="w-4 h-4" /> Delete Order
+                    className="flex-1 py-2.5 border border-red-100 bg-red-50 text-red-600 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Order
                   </button>
                 ) : selectedOrder.status === 'SERVED' ? null : (
                   <button
                     onClick={() => setShowCancellation(true)}
-                    className="flex-1 py-3 border border-red-100 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                    <XCircle className="w-4 h-4" /> Cancel Order
+                    className="flex-1 py-2.5 border border-red-100 bg-red-50 text-red-600 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+                    <XCircle className="w-3.5 h-3.5" /> Cancel Order
                   </button>
                 )}
               </div>
@@ -538,18 +535,16 @@ export default function OrdersPage() {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-              <Layers className="w-10 h-10 opacity-20" />
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <Layers className="w-8 h-8 opacity-20" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">No Selection</h3>
-            <p>Select an order to view details</p>
+            <h3 className="text-base font-bold text-gray-900 mb-1">No Selection</h3>
+            <p className="text-sm">Select an order to view details</p>
           </div>
         )}
       </div>
 
-
-
-      {/* Cancellation Modal */}
+      {/* Cancellation Modal (Keep as is) */}
       {
         showCancellation && selectedOrder && (
           <CancellationModal
@@ -558,7 +553,6 @@ export default function OrdersPage() {
             onClose={() => setShowCancellation(false)}
             onConfirm={async (reason, restore) => {
               if (!restaurant || !selectedOrder) return;
-              console.log(`Cancelled Order ${selectedOrder.id}:`, { reason, restore });
               const result = await cancelOrderAction(
                 selectedOrder.id,
                 reason,
@@ -568,7 +562,6 @@ export default function OrdersPage() {
               if (result.success) {
                 toast.success("Order cancelled");
                 setShowCancellation(false);
-                // Real-time will handle refresh
               } else {
                 toast.error("Failed to cancel order");
               }
@@ -577,7 +570,7 @@ export default function OrdersPage() {
         )
       }
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal (Keep as is) */}
       {
         showDeleteConfirm && selectedOrder && (
           <ConfirmationModal

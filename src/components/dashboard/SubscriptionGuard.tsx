@@ -21,7 +21,25 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
     const restaurantSlug = restaurant?.slug;
     const isSuspended = status === "canceled" || status === "suspended";
 
-    if (isSuspended && !isSubscriptionPage) {
+    // Expiration Check Logic (Date Only Comparison)
+    const endsAt = restaurant?.subscription?.ends_at; // ISO string
+    let isExpired = false;
+
+    if (endsAt && status === 'active') { // Only check expiry if currently marked active
+        const expiryDate = new Date(endsAt);
+        const today = new Date();
+
+        // Normalize to midnight to compare dates only, ignoring time
+        expiryDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        // If today is strictly AFTER the expiry date
+        if (today > expiryDate) {
+            isExpired = true;
+        }
+    }
+
+    if ((isSuspended || isExpired) && !isSubscriptionPage) {
         return (
             <div className="relative">
                 {/* Blurred Content */}
@@ -40,19 +58,23 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
 
                         <div className="space-y-4">
                             <h2 className="text-3xl font-black text-gray-900 tracking-tight flex items-center justify-center gap-3">
-                                <span className="text-2xl">🔒</span> Subscription Suspended
+                                {isSuspended ? <span className="text-2xl">🔒</span> : <span className="text-2xl">⌛</span>}
+                                {isSuspended ? "Subscription Suspended" : "Plan Expired"}
                             </h2>
                             <p className="text-gray-500 font-medium leading-relaxed">
-                                Your subscription is currently inactive. To regain full access to your dashboard and features, please reactivate your plan.
+                                {isSuspended
+                                    ? "Your subscription is currently inactive. To regain full access to your dashboard and features, please reactivate your plan."
+                                    : "Your subscription period has ended. Please upgrade your plan to verify your account and continue using professional features."
+                                }
                             </p>
                         </div>
 
                         <div className="space-y-4 pt-4">
                             <button
-                                onClick={() => router.push(`/dashboard/subscription?reactivate=true`)}
+                                onClick={() => router.push(`/dashboard/subscription/pricing`)}
                                 className="w-full bg-[#559701] hover:bg-[#4a8001] text-white py-5 rounded-2xl font-black text-lg transition-all shadow-xl shadow-[#559701]/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
                             >
-                                <span className="text-xl">👉</span> Reactivate with Pro
+                                <span className="text-xl">👉</span> {isSuspended ? "Reactivate Plan" : "Upgrade Plan"}
                             </button>
 
                             <button className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2 mx-auto uppercase">

@@ -316,7 +316,22 @@ export default function SettingsPage() {
                   type="number"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
                   value={formData.number_of_tables}
-                  onChange={(e) => setFormData({ ...formData, number_of_tables: e.target.value })}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    const maxTables = restaurant?.subscription?.max_tables || 10;
+
+                    if (val > maxTables) {
+                      toast.error(`Whoa! Your plan is capped at ${maxTables} tables. Ready to upgrade? 🚀`, {
+                        description: "You've reached the maximum number of tables for your current subscription.",
+                        duration: 4000,
+                        className: "bg-red-50 border-red-200 text-red-800",
+                        descriptionClassName: "text-red-600"
+                      });
+                      setFormData({ ...formData, number_of_tables: maxTables.toString() });
+                      return;
+                    }
+                    setFormData({ ...formData, number_of_tables: e.target.value });
+                  }}
                 />
                 <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
               </div>

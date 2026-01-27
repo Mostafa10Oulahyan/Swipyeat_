@@ -74,14 +74,10 @@ export default function StaffPage() {
 
       // Check if we got an ID back (should happen with new action)
       if (result.data?.id) {
-        setTempCredential({
-          email: formData.email,
-          code: formData.password,
-          userId: result.data.id,
-          name: formData.full_name
-        });
         setIsModalOpen(false);
-        setModalStep("security");
+        // Removed: Automatic temp credential flow on creation
+        // setTempCredential({ ... });
+        // setModalStep("security");
       } else {
         // Fallback if no ID (old behavior)
         setIsModalOpen(false);
@@ -94,6 +90,16 @@ export default function StaffPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleStartResetFlow = (userId: string, email: string, name: string, tempCode: string) => {
+    setTempCredential({
+      userId,
+      email,
+      name,
+      code: tempCode
+    });
+    setModalStep("security");
   };
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
@@ -112,11 +118,16 @@ export default function StaffPage() {
 
   const handleDeleteStaff = async (id: string) => {
     try {
-      const { error } = await supabase.from("users").delete().eq("id", id);
-      if (error) throw error;
+      // Use Server Action to delete from Auth AND DB
+      const { deleteStaffAction } = await import("@/app/actions/staff");
+      const result = await deleteStaffAction(id);
+
+      if (!result.success) throw new Error(result.error);
+
       fetchStaff();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting staff:", error);
+      alert("Failed to delete staff: " + error.message);
     }
   };
 
@@ -189,6 +200,7 @@ export default function StaffPage() {
           onEdit={(id) => router.push(`/dashboard/staff/${id}/edit`)}
           onDelete={handleDeleteStaff}
           onToggleStatus={handleToggleStatus}
+          onResetFlow={handleStartResetFlow}
         />
       )}
 

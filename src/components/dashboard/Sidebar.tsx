@@ -141,15 +141,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 href={`/dashboard${item.href}`}
                 onClick={() => setIsMobileOpen(false)}
                 className={`
-                    flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm
+                    flex items-center gap-3 px-3 py-2 rounded-xl text-xs lg:text-sm font-medium
                     transition-all duration-200
                     ${active
-                        ? "bg-[#559701] text-white font-medium shadow-md"
+                        ? "bg-[#559701] text-white shadow-sm"
                         : "text-[#4a5568] hover:bg-[#f7fafc] hover:text-[#1a202c]"
                     }
                 `}
             >
-                <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={active ? 2.5 : 2} />
+                <Icon className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" strokeWidth={active ? 2.5 : 2} />
                 <span className="truncate">{item.name}</span>
             </Link>
         );
@@ -157,19 +157,19 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
     // Loading state skeleton
     const LoadingSkeleton = () => (
-        <aside className="w-[220px] h-screen bg-white flex flex-col fixed left-0 top-0 border-r border-gray-100 z-40">
-            <div className="p-5 pb-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 lg:w-20 lg:h-20 bg-gray-100 rounded-xl animate-pulse" />
-                    <div className="flex flex-col gap-2">
-                        <div className="w-24 h-4 bg-gray-100 rounded animate-pulse" />
-                        <div className="w-16 h-3 bg-gray-100 rounded animate-pulse" />
+        <aside className="w-[200px] h-screen bg-white flex flex-col fixed left-0 top-0 border-r border-gray-100 z-40">
+            <div className="p-4 pb-5">
+                <div className="flex items-center gap-2">
+                    <div className="w-12 h-12 lg:w-16 lg:h-16 bg-gray-100 rounded-xl animate-pulse" />
+                    <div className="flex flex-col gap-1.5">
+                        <div className="w-20 h-3 bg-gray-100 rounded animate-pulse" />
+                        <div className="w-12 h-2.5 bg-gray-100 rounded animate-pulse" />
                     </div>
                 </div>
             </div>
-            <nav className="flex-1 px-3 space-y-2">
+            <nav className="flex-1 px-2 space-y-1.5">
                 {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+                    <div key={i} className="h-9 bg-gray-100 rounded-xl animate-pulse" />
                 ))}
             </nav>
         </aside>
@@ -179,10 +179,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const SidebarContent = () => (
         <>
             {/* Logo & Restaurant Info */}
-            <div className="p-4 lg:p-5 pb-4 lg:pb-6 flex-shrink-0">
-                <div className="flex items-center gap-3">
+            <div className="p-3 lg:p-4 pb-3 lg:pb-5 flex-shrink-0">
+                <div className="flex items-center gap-2 lg:gap-3">
                     {/* Logo */}
-                    <div className="w-14 h-14 lg:w-20 lg:h-20 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden border border-gray-50 flex-shrink-0">
+                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-50 flex-shrink-0">
                         {restaurant?.logo_url ? (
                             <img
                                 src={restaurant.logo_url}
@@ -190,20 +190,20 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <div className="text-[#559701] font-bold text-xl lg:text-2xl uppercase">
+                            <div className="text-[#559701] font-bold text-lg lg:text-xl uppercase">
                                 {restaurant?.name?.charAt(0) || 'R'}
                             </div>
                         )}
                     </div>
                     {/* Restaurant Name */}
-                    <div className="flex flex-col gap-1 min-w-0 flex-1">
-                        <h2 className="text-xs lg:text-sm font-bold text-[#1a202c] leading-tight capitalize break-words line-clamp-2">
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                        <h2 className="text-xs font-bold text-[#1a202c] leading-tight capitalize break-words line-clamp-2">
                             {restaurant?.name || 'Restaurant Name'}
                         </h2>
                         {restaurant?.subscription && (
                             <div className="flex">
                                 <span className={`
-                                    text-[8px] lg:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border
+                                    text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border
                                     ${(restaurant.subscription.status === 'canceled' || restaurant.subscription.status === 'suspended')
                                         ? "bg-red-500 text-white border-red-600"
                                         : (restaurant.subscription.plan_type === 'pro')
@@ -221,15 +221,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             </div>
 
             {/* Main Navigation - Scrollable */}
-            <nav className="flex-1 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300">
+            <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300">
                 {filteredMainNav.map((item) => (
                     <NavLink key={item.name} item={item} />
                 ))}
 
                 {/* Account Section Label - only show if there are items */}
                 {filteredAccountNav.length > 0 && (
-                    <div className="pt-6 pb-2">
-                        <span className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="pt-4 pb-1.5">
+                        <span className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-wider">
                             Account
                         </span>
                     </div>
@@ -241,7 +241,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             </nav>
 
             {/* Disconnect/Logout */}
-            <div className="p-3 pb-6 flex-shrink-0">
+            <div className="p-2 pb-4 flex-shrink-0">
                 <button
                     onClick={async () => {
                         const res = await logoutAction();
@@ -249,10 +249,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                             window.location.href = res.redirectUrl;
                         }
                     }}
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl w-full text-left text-[#e53e3e] hover:bg-red-50 transition-all duration-200"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl w-full text-left text-[#e53e3e] hover:bg-red-50 transition-all duration-200"
                 >
-                    <LogOut className="w-5 h-5 flex-shrink-0" />
-                    <span className="text-sm font-medium">Disconnect</span>
+                    <LogOut className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
+                    <span className="text-xs lg:text-sm font-medium">Disconnect</span>
                 </button>
             </div>
         </>
@@ -264,10 +264,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             <>
                 {/* Mobile hamburger button */}
                 <button
-                    className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center"
+                    className="lg:hidden fixed top-3 left-3 z-50 w-9 h-9 bg-white rounded-lg shadow-md flex items-center justify-center"
                     onClick={() => setIsMobileOpen(true)}
                 >
-                    <Menu className="w-5 h-5 text-gray-600" />
+                    <Menu className="w-4 h-4 text-gray-600" />
                 </button>
 
                 {/* Desktop sidebar skeleton */}
@@ -282,11 +282,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         <>
             {/* Mobile hamburger button - visible on mobile/tablet */}
             <button
-                className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+                className="lg:hidden fixed top-3 left-3 z-50 w-9 h-9 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
                 onClick={() => setIsMobileOpen(true)}
                 aria-label="Open menu"
             >
-                <Menu className="w-5 h-5 text-gray-600" />
+                <Menu className="w-4 h-4 text-gray-600" />
             </button>
 
             {/* Mobile Overlay */}
@@ -300,7 +300,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             {/* Mobile Sidebar */}
             <aside
                 className={`
-                    lg:hidden fixed left-0 top-0 h-screen w-[280px] bg-white z-50
+                    lg:hidden fixed left-0 top-0 h-screen w-[260px] bg-white z-50
                     transform transition-transform duration-300 ease-in-out
                     flex flex-col shadow-xl
                     ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -308,17 +308,17 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             >
                 {/* Close button */}
                 <button
-                    className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
                     onClick={() => setIsMobileOpen(false)}
                     aria-label="Close menu"
                 >
-                    <X className="w-5 h-5 text-gray-500" />
+                    <X className="w-4 h-4 text-gray-500" />
                 </button>
                 <SidebarContent />
             </aside>
 
             {/* Desktop Sidebar - Fixed Left */}
-            <aside className="hidden lg:flex w-[220px] xl:w-[240px] 2xl:w-[260px] h-screen bg-white flex-col fixed left-0 top-0 border-r border-gray-100 z-40">
+            <aside className="hidden lg:flex w-[200px] xl:w-[220px] 2xl:w-[240px] h-screen bg-white flex-col fixed left-0 top-0 border-r border-gray-100 z-40">
                 <SidebarContent />
             </aside>
         </>

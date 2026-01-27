@@ -130,3 +130,33 @@ export async function updateStaffAction(userId: string, formData: any) {
         return { success: false, error: error.message };
     }
 }
+
+export async function deleteStaffAction(userId: string) {
+    try {
+        const supabaseAdmin = createAdminClient();
+
+        // 1. Delete from Supabase Auth (Service Role)
+        // This effectively removes access immediately.
+        // If 'public.users' has 'ON DELETE CASCADE' referencing auth.users, it will be gone too.
+        // Otherwise, we might want to manually delete it, but usually standard setup cascades or we handle it here.
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+        if (authError) throw authError;
+
+        // 2. Explicitly delete from public.users if needed (double safety or if no cascade)
+        // Note: If you have a foreign key set to cascade, this might be redundant or fail if already deleted.
+        // For safety, we can attempt it, effectively ensuring cleanup.
+        const { error: dbError } = await supabaseAdmin.from("users").delete().eq("id", userId);
+
+        // Ignore "row not found" if cascade already took care of it, but report other errors
+        if (dbError) {
+            console.warn("DB delete warning (might be cascaded):", dbError);
+        }
+
+        revalidatePath(`/dashboard/staff`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Staff deletion error:", error);
+        return { success: false, error: error.message };
+    }
+}
