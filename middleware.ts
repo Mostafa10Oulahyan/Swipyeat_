@@ -1,73 +1,50 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  // Create a single response that will be modified
-  let response = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
 
-  // IMPORTANT: This refreshes the auth token
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabaseResponse, user } = await updateSession(request)
 
   const { pathname } = request.nextUrl
-  const isLoginPage = pathname === '/login'
-  const isDashboard = pathname.startsWith('/dashboard')
-  const isRoot = pathname === '/'
 
-  // Helper to create redirect with preserved cookies
-  const redirectWithCookies = (url: string) => {
-    const redirectResponse = NextResponse.redirect(new URL(url, request.url))
-    response.cookies.getAll().forEach(cookie => {
-      redirectResponse.cookies.set(cookie.name, cookie.value)
-    })
-    return redirectResponse
+
+  // Redirect logged-in users away from auth pages
+  if (pathname === '/login' && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
-  // Redirect root to login
-  if (isRoot) {
-    return redirectWithCookies('/login')
+  // Redirect root to login or dashboard
+  if (pathname === '/') {
+    const target = user ? '/dashboard' : '/login'
+    const url = request.nextUrl.clone()
+    url.pathname = target
+    return NextResponse.redirect(url)
   }
 
-  // Unauthenticated user trying to access dashboard -> Login
-  if (!user && isDashboard) {
-    return redirectWithCookies('/login')
+  // Protect dashboard routes
+  if (pathname.startsWith('/dashboard') && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  // Authenticated user on login page -> Dashboard
-  if (user && isLoginPage) {
-    return redirectWithCookies('/dashboard')
-  }
-
-  // Role-Based Access Control
+  // Role-Based Access Control for authenticated users
   if (user) {
     const role = user.user_metadata?.role
     const restrictedRoutes = ['/settings', '/staff']
     const isRestrictedRoute = restrictedRoutes.some(route => pathname.includes(route))
 
     if (role === 'manager' && isRestrictedRoute) {
-      return redirectWithCookies('/dashboard')
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
     }
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {

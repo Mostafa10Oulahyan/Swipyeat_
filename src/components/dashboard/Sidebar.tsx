@@ -206,7 +206,10 @@ export default function Sidebar() {
             <div className="p-3 pb-6">
                 <button
                     onClick={async () => {
-                        await logoutAction();
+                        const res = await logoutAction();
+                        if (res?.success && res?.redirectUrl) {
+                            window.location.href = res.redirectUrl;
+                        }
                     }}
                     className="flex items-center gap-3 px-4 py-2.5 rounded-xl w-full text-left text-[#e53e3e] hover:bg-red-50 transition-all duration-200"
                 >

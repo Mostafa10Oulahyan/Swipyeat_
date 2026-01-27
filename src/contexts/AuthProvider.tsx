@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -37,7 +37,6 @@ interface Restaurant {
     instagram_url: string | null;
     created_at: string;
     updated_at: string;
-    // Subscription info
     subscription?: {
         plan_type: "free_trial" | "pro";
         status: "active" | "canceled" | "expired" | "suspended";
@@ -96,6 +95,14 @@ export function useAuth() {
     return context;
 }
 
+// Helper: Promise with timeout
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> {
+    const timeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(errorMessage)), ms);
+    });
+    return Promise.race([promise, timeout]);
+}
+
 // Provider Component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -103,55 +110,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [initialized, setInitialized] = useState(false);
 
-    const supabase = createClient();
+    // Create supabase client once with useMemo
+    const supabase = useMemo(() => createClient(), []);
 
-    // Fetch user profile from DB
+    // Fetch user profile from DB with timeout
     const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
+        console.log('[AUTH PROVIDER] fetchProfile START for userId:', userId);
         try {
-            const { data, error } = await supabase
+            const queryPromise = supabase
                 .from("users")
                 .select("*")
                 .eq("id", userId)
                 .single();
 
+            const { data, error } = await withTimeout(queryPromise, 5000, 'Profile fetch timeout');
+
             if (error) {
-                console.error("Error fetching profile:", error);
+                console.error("[AUTH PROVIDER] Error fetching profile:", error);
                 return null;
             }
 
+            console.log('[AUTH PROVIDER] fetchProfile SUCCESS:', data?.name);
             return data as UserProfile;
         } catch (err) {
-            console.error("Error fetching profile:", err);
+            console.error("[AUTH PROVIDER] fetchProfile FAILED:", err);
             return null;
         }
     }, [supabase]);
 
-    // Fetch restaurant from DB based on restaurant_id
+    // Fetch restaurant from DB with timeout
     const fetchRestaurant = useCallback(async (restaurantId: string): Promise<Restaurant | null> => {
+        console.log('[AUTH PROVIDER] fetchRestaurant START for id:', restaurantId);
         try {
-            const { data, error } = await supabase
+            const queryPromise = supabase
                 .from("restaurants")
                 .select(`
-          *,
-          subscriptions(
-            is_current,
-            status,
-            subscription_plans(plan_type)
-          )
-        `)
+                    *,
+                    subscriptions(
+                        is_current,
+                        status,
+                        subscription_plans(plan_type)
+                    )
+                `)
                 .eq("id", restaurantId)
                 .single();
 
+            const { data, error } = await withTimeout(queryPromise, 5000, 'Restaurant fetch timeout');
+
             if (error) {
-                console.error("Error fetching restaurant:", error);
+                console.error("[AUTH PROVIDER] Error fetching restaurant:", error);
                 return null;
             }
 
             // Process subscription data
             let subscription = null;
             if (data.subscriptions && Array.isArray(data.subscriptions)) {
-                // Find current subscription or latest one
                 const subs = data.subscriptions as any[];
                 const currentSub = subs.find((s: any) => s.is_current === true) || subs[0];
 
@@ -168,76 +183,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            // Remove raw subscriptions array and add processed subscription
             const { subscriptions, ...restaurantData } = data;
 
+            console.log('[AUTH PROVIDER] fetchRestaurant SUCCESS:', restaurantData.name);
             return {
                 ...restaurantData,
                 subscription,
             } as Restaurant;
         } catch (err) {
-            console.error("Error fetching restaurant:", err);
+            console.error("[AUTH PROVIDER] fetchRestaurant FAILED:", err);
             return null;
         }
     }, [supabase]);
 
-    // Main auth refresh function
+    // Load user data (profile + restaurant)
+    const loadUserData = useCallback(async (authUser: User) => {
+        console.log('[AUTH PROVIDER] loadUserData START for:', authUser.id);
+        setUser(authUser);
+
+        const userProfile = await fetchProfile(authUser.id);
+        setProfile(userProfile);
+
+        if (userProfile?.restaurant_id) {
+            const restaurantData = await fetchRestaurant(userProfile.restaurant_id);
+            setRestaurant(restaurantData);
+        } else {
+            console.log('[AUTH PROVIDER] No restaurant_id in profile');
+            setRestaurant(null);
+        }
+
+        console.log('[AUTH PROVIDER] loadUserData COMPLETE');
+    }, [fetchProfile, fetchRestaurant]);
+
+    // Main auth refresh function - uses getSession (no network call)
     const refreshAuth = useCallback(async () => {
+        console.log('[AUTH PROVIDER] refreshAuth started');
         try {
-            setLoading(true);
             setError(null);
 
-            // Get current user
-            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+            console.log('[AUTH PROVIDER] Calling getSession...');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-            if (authError) {
-                // "Auth session missing" is expected when not logged in - don't log as error
-                if (!authError.message?.includes("session missing")) {
-                    console.error("Auth error:", authError);
-                }
+            if (sessionError) {
+                console.error("[AUTH PROVIDER] Session error:", sessionError);
                 setUser(null);
                 setProfile(null);
                 setRestaurant(null);
+                setLoading(false);
                 return;
             }
 
-            if (!authUser) {
+            if (!session?.user) {
+                console.log('[AUTH PROVIDER] No session/user found');
                 setUser(null);
                 setProfile(null);
                 setRestaurant(null);
+                setLoading(false);
                 return;
             }
 
-            setUser(authUser);
-
-            // Fetch profile from users table
-            const userProfile = await fetchProfile(authUser.id);
-            setProfile(userProfile);
-
-            // Fetch restaurant based on profile's restaurant_id
-            if (userProfile?.restaurant_id) {
-                const restaurantData = await fetchRestaurant(userProfile.restaurant_id);
-                setRestaurant(restaurantData);
-            } else {
-                setRestaurant(null);
-            }
+            console.log('[AUTH PROVIDER] Session found, user:', session.user.id);
+            await loadUserData(session.user);
+            console.log('[AUTH PROVIDER] refreshAuth completed successfully');
         } catch (err) {
-            console.error("Error refreshing auth:", err);
+            console.error("[AUTH PROVIDER] Error refreshing auth:", err);
             setError("Failed to load authentication data");
         } finally {
             setLoading(false);
         }
-    }, [supabase, fetchProfile, fetchRestaurant]);
+    }, [supabase, loadUserData]);
 
     // Initialize auth on mount
     useEffect(() => {
+        if (initialized) return;
+
+        console.log('[AUTH PROVIDER] Initializing...');
+        setInitialized(true);
+
+        // Get initial session
         refreshAuth();
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-                    await refreshAuth();
+                console.log('[AUTH PROVIDER] onAuthStateChange event:', event);
+
+                if (event === "SIGNED_IN" && session?.user) {
+                    setLoading(true);
+                    await loadUserData(session.user);
+                    setLoading(false);
+                } else if (event === "TOKEN_REFRESHED" && session?.user) {
+                    setUser(session.user);
                 } else if (event === "SIGNED_OUT") {
                     setUser(null);
                     setProfile(null);
@@ -250,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             subscription.unsubscribe();
         };
-    }, [refreshAuth, supabase.auth]);
+    }, [initialized, refreshAuth, supabase.auth, loadUserData]);
 
     const value: AuthContextType = {
         user,

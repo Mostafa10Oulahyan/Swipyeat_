@@ -9,15 +9,28 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setLoading(true);
     setError("");
 
+    console.log('[LOGIN PAGE] Form submitted')
+
+    const formData = new FormData(e.currentTarget);
     const res = await loginAction(formData);
 
-    // Only handle errors - successful login redirects server-side
-    if (res && 'error' in res) {
+    console.log('[LOGIN PAGE] loginAction response:', res)
+
+    if (res && 'error' in res && res.error) {
+      console.log('[LOGIN PAGE] Error received:', res.error)
       setError(res.error);
+      setLoading(false);
+    } else if (res?.success && res?.redirectUrl) {
+      console.log('[LOGIN PAGE] Success! Redirecting to:', res.redirectUrl)
+      // Hard browser reload to ensure cookies are properly read
+      window.location.href = res.redirectUrl;
+    } else {
+      console.log('[LOGIN PAGE] Unexpected response:', res)
       setLoading(false);
     }
   }
@@ -42,7 +55,7 @@ export default function LoginPage() {
           <p className="text-gray-500 text-sm">Please enter your details</p>
         </div>
 
-        <form action={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-900">Email</label>
             <input
