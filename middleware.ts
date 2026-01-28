@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
-import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request)
+  const { supabaseResponse, user, supabase } = await updateSession(request)
 
   const { pathname } = request.nextUrl
 
@@ -31,36 +30,22 @@ export async function middleware(request: NextRequest) {
 
   // Role-Based Access Control for authenticated users
   // The role is stored in the 'users' table, not in user_metadata
+  const { data: userProfile, error } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user?.id)
+    .single()
+  const role = userProfile?.role
+  if (user && userProfile && !['manager', 'restaurant_admin'].includes(role)) {
+    return NextResponse.json({ error: '403 - FORBIDDEN' }, { status: 403 })
+  }
+
   if (user && pathname.startsWith('/dashboard')) {
     const restrictedRoutes = ['/settings', '/staff', '/subscription']
     const isRestrictedRoute = restrictedRoutes.some(route => pathname.includes(route))
-
     if (isRestrictedRoute) {
-      // Create a supabase client to query the database for the user's role
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-        {
-          cookies: {
-            getAll() {
-              return request.cookies.getAll()
-            },
-            setAll() {
-              // We don't need to set cookies here, just reading
-            },
-          },
-        }
-      )
-
       // Fetch the user's role from the users table
-      const { data: userProfile, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      if (!error && userProfile?.role === 'manager') {
-        console.log(`[MIDDLEWARE] Manager blocked from accessing: ${pathname}`)
+      if (!error && role === 'manager') {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'
         return NextResponse.redirect(url)
