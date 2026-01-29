@@ -309,12 +309,13 @@ export default function SettingsPage() {
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">Number of Tables</label>
+            <div className="space-y-2 opacity-50">
+              <label className="text-sm  font-bold text-gray-700">Number of Tables</label>
               <div className="relative">
                 <input
                   type="number"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
+                  disabled
+                  className="w-full bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#559701] focus:border-transparent outline-none transition-all pl-12"
                   value={formData.number_of_tables}
                   onChange={(e) => {
                     const val = parseInt(e.target.value);

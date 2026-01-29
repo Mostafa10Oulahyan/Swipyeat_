@@ -40,7 +40,7 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
 
     return (
         <>
-            <header className="h-12 sm:h-14 bg-white flex items-center justify-between px-3 sm:px-4 sticky top-0 z-30 border-b border-gray-100 lg:border-b-0">
+            <header className="h-14 bg-white flex items-center justify-between px-3 sm:px-4 sticky top-0 z-30 border-b border-gray-100 lg:border-b-0">
                 {/* Left - Page Title + Status */}
                 <div className="flex items-center gap-2 sm:gap-3 ml-12 lg:ml-0">
                     <h1 className="text-sm sm:text-base lg:text-lg font-bold text-[#1a202c] truncate max-w-[120px] sm:max-w-none">{title}</h1>

@@ -74,60 +74,8 @@ export default function QRCodetablesPage() {
     }
   };
 
-  const handleSaveTableCount = async () => {
-    if (!restaurant) return;
-
-    if (numTables > maxTablesAllowed) {
-      // Determine plan type - check subscription or infer from limit
-      const limitBasedPlan = maxTablesAllowed === 999 ? 'premium' : (maxTablesAllowed === 50 ? 'pro' : 'free_trial');
-      const planType = subscription?.plan?.plan_type || limitBasedPlan;
-
-      if (planType === 'free_trial' && maxTablesAllowed < 50) {
-        toast.error(
-          <div>
-            FREE plan: max {maxTablesAllowed} tables.{' '}
-            <button onClick={() => router.push(`/dashboard/subscription/pricing`)} className="underline font-bold">
-              Upgrade to PRO
-            </button>
-          </div>,
-          { duration: 5000 }
-        );
-      } else if (planType === 'pro' || maxTablesAllowed >= 50) {
-        toast.error(
-          <div>
-            PRO plan: max {maxTablesAllowed} tables.{' '}
-            <button onClick={() => router.push(`/dashboard/subscription/pricing`)} className="underline font-bold">
-              Upgrade to PREMIUM
-            </button>
-          </div>,
-          { duration: 5000 }
-        );
-      }
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const res = await updateRestaurantAction(restaurant.id, restaurant.slug, {
-        ...restaurant,
-        number_of_tables: numTables
-      });
-
-      if (res.success) {
-        setDbNumTables(numTables);
-        toast.success("Table count updated in database");
-      } else {
-        throw new Error(res.error);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update database");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   // Helper to generate IDs
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (numTables > maxTablesAllowed) {
       // Determine plan type - check subscription or infer from limit
       const limitBasedPlan = maxTablesAllowed === 999 ? 'premium' : (maxTablesAllowed === 50 ? 'pro' : 'free_trial');
@@ -158,25 +106,45 @@ export default function QRCodetablesPage() {
     }
 
     setIsGenerating(true);
-    // Simulate generation delay
-    setTimeout(() => {
-      const newTables: TableAsset[] = [];
-      const baseUrl = 'http://orders.swipyeat.com';
 
-      for (let i = 1; i <= numTables; i++) {
-        // Format as requested: baseUrl/restaurant-slug?table=num
-        const url = `${baseUrl}/${restaurant?.slug}/${i}`;
-        newTables.push({
-          id: i,
-          name: `Table ${i}`,
-          slug: `${restaurant?.slug}/${i}`,
-          url: url,
+    // Save table count to restaurant settings if changed
+    if (numTables !== dbNumTables && restaurant) {
+      try {
+        const res = await updateRestaurantAction(restaurant.id, restaurant.slug, {
+          ...restaurant,
+          number_of_tables: numTables
         });
+
+        if (res.success) {
+          setDbNumTables(numTables);
+          toast.success("Table count updated in database");
+        } else {
+          throw new Error(res.error);
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update database");
+        setIsGenerating(false);
+        return;
       }
-      setGeneratedTables(newTables);
-      setIsGenerating(false);
-      toast.success(`${numTables} QR Codes generated!`);
-    }, 600);
+    }
+
+    // Generate QR codes
+    const newTables: TableAsset[] = [];
+    const baseUrl = 'http://orders.swipyeat.com';
+
+    for (let i = 1; i <= numTables; i++) {
+      // Format as requested: baseUrl/restaurant-slug?table=num
+      const url = `${baseUrl}/${restaurant?.slug}/${i}`;
+      newTables.push({
+        id: i,
+        name: `Table ${i}`,
+        slug: `${restaurant?.slug}/${i}`,
+        url: url,
+      });
+    }
+    setGeneratedTables(newTables);
+    setIsGenerating(false);
+    toast.success(`${numTables} QR Codes generated!`);
   };
 
   // Download PDF for Print
@@ -308,14 +276,6 @@ export default function QRCodetablesPage() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-semibold text-gray-700">Number of Tables to Generate</label>
-              {numTables !== dbNumTables && (
-                <button
-                  onClick={handleSaveTableCount}
-                  className="text-[10px] font-bold text-[#5d9e1e] hover:underline flex items-center gap-1"
-                >
-                  <Smartphone className="w-3 h-3" /> Save to Restaurant Settings
-                </button>
-              )}
               {numTables === dbNumTables && (
                 <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
                   <CheckCircle className="w-3 h-3 text-green-500" /> Linked with DB

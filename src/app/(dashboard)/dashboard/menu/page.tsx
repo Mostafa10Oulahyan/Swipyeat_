@@ -544,13 +544,13 @@ export default function MenuPage() {
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#559701]/20 focus:border-[#559701] transition-all"
+              className="sm:w-64 w-60 pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#559701]/20 focus:border-[#559701] transition-all"
             />
           </div>
 
           <button
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#559701] text-white rounded-xl font-semibold text-sm hover:bg-[#4a8501] transition-colors shadow-lg shadow-[#559701]/20"
+            className="inline-flex sm:w-auto w-40 pl items-center gap-2 sm:px-4 px-2 sm:py-2.5 py-2.5 bg-[#559701] text-white rounded-xl font-semibold text-sm hover:bg-[#4a8501] transition-colors shadow-lg shadow-[#559701]/20"
           >
             <Plus className="w-5 h-5" />
             Add Item

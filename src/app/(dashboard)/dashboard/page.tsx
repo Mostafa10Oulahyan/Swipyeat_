@@ -125,7 +125,7 @@ export default function DashboardPage() {
   if (restaurantLoading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-white rounded-2xl p-5 h-32" />
           ))}
@@ -137,7 +137,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -145,8 +145,8 @@ export default function DashboardPage() {
               key={stat.title}
               className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
             >
-              <div className="flex items-start justify-between">
-                <div className={`${stat.iconBg} ${stat.iconColor} p-3 rounded-xl`}>
+              <div className="md:flex md:space-y-0 space-y-2 items-start justify-between">
+                <div className={`${stat.iconBg} max-w-max ${stat.iconColor} p-3 rounded-xl`}>
                   <Icon className="w-6 h-6" />
                 </div>
                 <div className="flex items-center gap-1">
