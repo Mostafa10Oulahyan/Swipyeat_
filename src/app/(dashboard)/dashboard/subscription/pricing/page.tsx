@@ -56,44 +56,7 @@ export default function PricingPage() {
         }
     };
 
-    const planDetails: any = {
-        free_trial: {
-            title: "Basic Starter",
-            subtitle: "Essential tools for small kiosks or food trucks.",
-            price_monthly: "0",
-            price_yearly: "0",
-            features: [
-                { text: "Up to 5 Active Tables", included: true },
-                { text: "3 Staff Accounts", included: true },
-                { text: "Basic Menu Management", included: true },
-                { text: "Daily Sales Reports", included: true },
-            ]
-        },
-        pro: {
-            title: "Pro Kitchen",
-            subtitle: "Perfect for growing single-location restaurants.",
-            price_monthly: "149",
-            price_yearly: "119",
-            features: [
-                { text: "Up to 50 Active Tables", included: true },
-                { text: "20 Staff Accounts", included: true },
-                { text: "Advanced Menu Management", included: true },
-                { text: "Email Support", included: true },
-            ]
-        },
-        premium: {
-            title: "Premium Enterprise",
-            subtitle: "Full control and AI-powered efficiency for high-volume operations.",
-            price_monthly: "299",
-            price_yearly: "239",
-            features: [
-                { text: "Unlimited Tables & Staff", included: true },
-                { text: "AI Forecasting & Demand Prediction", included: true },
-                { text: "Multi-location HQ Dashboard", included: true },
-                { text: "24/7 Priority VIP Support", included: true },
-            ]
-        }
-    };
+
 
     const isPro = currentPlan?.plan_type === 'pro';
 
@@ -152,35 +115,34 @@ export default function PricingPage() {
                     const isCurrent = currentPlan?.plan_type === p.plan_type;
                     const isPremium = p.plan_type === 'premium';
 
-                    // Fallback features if DB features are empty/invalid
-                    let featuresList = [];
-                    try {
-                        featuresList = p.features && typeof p.features === 'object' && Array.isArray(p.features)
-                            ? p.features
-                            : (JSON.parse(p.features || '[]'));
-                    } catch (e) {
-                        // Fallback based on type if parse fails
-                        if (p.plan_type === 'free_trial') featuresList = [
-                            { text: "Up to 5 Active Tables", included: true },
-                            { text: "3 Staff Accounts", included: true }
-                        ];
-                        else if (p.plan_type === 'pro') featuresList = [
-                            { text: "Up to 50 Active Tables", included: true },
-                            { text: "20 Staff Accounts", included: true },
-                            { text: "Advanced Menu Management", included: true }
-                        ];
-                        else featuresList = [ // Premium fallback
-                            { text: "Unlimited Tables & Staff", included: true },
-                            { text: "AI Forecasting", included: true },
-                            { text: "Multi-location HQ", included: true }
-                        ];
-                    }
+                    // Generate features based on DB limits and plan type
+                    const featuresList: { text: string; included: boolean }[] = [];
 
-                    // Ensure features format
-                    if (featuresList.length === 0) {
-                        if (p.plan_type === 'free_trial') featuresList = [{ text: "Basic Features", included: true }];
-                        else if (p.plan_type === 'pro') featuresList = [{ text: "Advanced Features", included: true }];
-                        else featuresList = [{ text: "All Premium Features", included: true }];
+                    if (p.plan_type === 'premium') {
+                        featuresList.push(
+                            { text: "Unlimited Tables & Staff", included: true },
+                            { text: "Unlimited Menu Items", included: true },
+                            { text: "AI Forecasting & Demand Prediction", included: true },
+                            { text: "Multi-location HQ Dashboard", included: true },
+                            { text: "24/7 Priority VIP Support", included: true }
+                        );
+                    } else {
+                        featuresList.push(
+                            { text: `Up to ${p.max_tables} Active Tables`, included: true },
+                            { text: `${p.max_staff} Staff Accounts`, included: true },
+                            { text: `${p.max_menu_items} Menu Items`, included: true }
+                        );
+
+                        if (p.plan_type === 'free_trial') {
+                            featuresList.push(
+                                { text: "Daily Sales Reports", included: true }
+                            );
+                        } else if (p.plan_type === 'pro') {
+                            featuresList.push(
+                                { text: "Advanced Menu Management", included: true },
+                                
+                            );
+                        }
                     }
 
 
