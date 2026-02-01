@@ -8,6 +8,8 @@ import {
   Filter,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Upload,
   Tags,
   Edit2,
@@ -31,7 +33,7 @@ import {
 } from "@/types/menu";
 import { v4 as uuidv4 } from "uuid";
 import {
-  getMenuItemsAction,
+  getMenuItemsPaginatedAction,
   getCategoriesAction,
   upsertMenuItemAction,
   deleteMenuItemAction,
@@ -40,7 +42,6 @@ import {
   deleteCategoryAction,
   getItemVariantsAction,
   upsertItemVariantsAction,
-  upsertItemVariantAction,
   deleteItemVariantAction,
   getRestaurantModifiersAction,
   upsertModifierAction,
@@ -60,7 +61,14 @@ export default function MenuPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [activeCategory, setActiveCategory] = useState("All Items");
+  const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(undefined);
+  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const ITEMS_PER_PAGE = 15;
   const [showItemModal, setShowItemModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -143,15 +151,13 @@ export default function MenuPage() {
 
     setIsLoading(true);
     try {
-      // Fetch Categories & Items
-      const [catsRes, itemsRes, modsRes] = await Promise.all([
+      // Fetch Categories & Modifiers (items will be fetched separately with pagination)
+      const [catsRes, modsRes] = await Promise.all([
         getCategoriesAction(restaurant.id),
-        getMenuItemsAction(restaurant.id),
         getRestaurantModifiersAction(restaurant.id)
       ]);
 
       if (catsRes.success && catsRes.data) setCategories(catsRes.data as Category[]);
-      if (itemsRes.success && itemsRes.data) setItems(itemsRes.data as MenuItem[]);
       if (modsRes.success && modsRes.data) setRestaurantModifiers(modsRes.data as Modifier[]);
 
     } catch (error: any) {
@@ -161,6 +167,52 @@ export default function MenuPage() {
       setIsLoading(false);
     }
   };
+
+  // Fetch paginated items
+  const fetchPaginatedItems = async () => {
+    if (!restaurant?.id) return;
+
+    try {
+      const itemsRes = await getMenuItemsPaginatedAction(
+        restaurant.id,
+        currentPage,
+        ITEMS_PER_PAGE,
+        activeCategoryId,
+        debouncedSearch,
+        availabilityFilter
+      );
+
+      if (itemsRes.success && itemsRes.data) {
+        setItems(itemsRes.data as MenuItem[]);
+        setTotalPages(itemsRes.totalPages || 1);
+        setTotalCount(itemsRes.totalCount || 0);
+      }
+    } catch (error: any) {
+      console.error("Error fetching paginated items:", error);
+      toast.error("Failed to load menu items");
+    }
+  };
+
+  // Fetch items when page, category, search, or availability filter changes
+  useEffect(() => {
+    if (!restaurantLoading && restaurant) {
+      fetchPaginatedItems();
+    }
+  }, [restaurant, restaurantLoading, currentPage, activeCategoryId, debouncedSearch, availabilityFilter]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to page 1 on search change
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset page when category or availability filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategoryId, availabilityFilter]);
 
   useEffect(() => {
     if (editingItem) {
@@ -416,6 +468,7 @@ export default function MenuPage() {
 
       if (deleteModal.type !== "variant" && deleteModal.type !== "modifier") {
         fetchInitialData();
+        fetchPaginatedItems();
       }
       setDeleteModal({ show: false, type: null, id: null, name: null });
     } catch (error: any) {
@@ -492,6 +545,7 @@ export default function MenuPage() {
         toast.success(editingCategory ? "Category updated" : "Category created");
         setShowCategoryModal(false);
         fetchInitialData();
+        fetchPaginatedItems();
       } else {
         throw new Error(res.error);
       }
@@ -502,20 +556,15 @@ export default function MenuPage() {
     }
   };
 
-  // Filter Logic
-  const filteredItems = items.filter((item) => {
-    const matchesCategory =
-      activeCategory === "All Items" || item.category_id === categories.find(c => c.name === activeCategory)?.id;
-    const matchesSearch = item.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
+  // Calculate counts from current page items
   const availableCount = items.filter((item) => item.is_available).length;
   const outOfStockCount = items.filter((item) => !item.is_available).length;
 
-  if (isLoading && !restaurant) {
+  // Pagination display values
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalCount);
+
+  if (isLoading || restaurantLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-[#559701]" />
@@ -558,17 +607,57 @@ export default function MenuPage() {
         </div>
       </div>
 
+      {/* Availability Filters */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-500 mr-1">Status:</span>
+        <button
+          onClick={() => setAvailabilityFilter('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            availabilityFilter === 'all'
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setAvailabilityFilter('active')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            availabilityFilter === 'active'
+              ? "bg-[#559701] text-white"
+              : "bg-green-50 text-green-700 hover:bg-green-100"
+          }`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+          Active
+        </button>
+        <button
+          onClick={() => setAvailabilityFilter('inactive')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            availabilityFilter === 'inactive'
+              ? "bg-red-500 text-white"
+              : "bg-red-50 text-red-600 hover:bg-red-100"
+          }`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+          Inactive
+        </button>
+      </div>
+
       {/* Categories */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
-            onClick={() => setActiveCategory("All Items")}
+            onClick={() => {
+              setActiveCategory("All Items");
+              setActiveCategoryId(undefined);
+            }}
             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === "All Items"
               ? "bg-[#559701] text-white shadow-md"
               : "bg-white text-gray-600 border border-gray-200 hover:border-[#559701] hover:text-[#559701]"
               }`}
           >
-            All Items ({items.length})
+            All Items ({totalCount})
           </button>
           {categories.map((category) => (
             <div
@@ -579,7 +668,10 @@ export default function MenuPage() {
                 }`}
             >
               <button
-                onClick={() => setActiveCategory(category.name)}
+                onClick={() => {
+                  setActiveCategory(category.name);
+                  setActiveCategoryId(category.id);
+                }}
                 className="flex-1 text-left"
               >
                 {category.name} ({category.item_count || 0})
@@ -609,7 +701,7 @@ export default function MenuPage() {
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {filteredItems.map((item) => (
+        {items.map((item) => (
           <div
             key={item.id}
             className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg transition-all group flex flex-col"
@@ -693,10 +785,63 @@ export default function MenuPage() {
         </button>
       </div>
 
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-4">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // Show first page, last page, current page, and pages around current
+              const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+              const showEllipsis = page === 2 && currentPage > 3 || page === totalPages - 1 && currentPage < totalPages - 2;
+              
+              if (showEllipsis && !showPage) {
+                return <span key={page} className="px-2 text-gray-400">...</span>;
+              }
+              
+              if (!showPage) return null;
+              
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${
+                    currentPage === page
+                      ? "bg-[#559701] text-white shadow-md"
+                      : "bg-white border border-gray-200 text-gray-600 hover:border-[#559701] hover:text-[#559701]"
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+          </div>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+          
+          <span className="ml-4 text-sm text-gray-500">
+            Showing {startIndex + 1}-{endIndex} of {totalCount}
+          </span>
+        </div>
+      )}
+
       {/* Footer Stats */}
       <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t border-gray-200 p-4 flex items-center justify-between z-10 px-8">
         <p className="text-sm text-gray-600">
-          Total Items: <span className="font-bold text-[#1a202c]">{items.length}</span>
+          Total Items: <span className="font-bold text-[#1a202c]">{totalCount}</span>
         </p>
         <div className="flex items-center gap-6">
           <p className="text-sm text-gray-600">
@@ -1232,7 +1377,7 @@ export default function MenuPage() {
                       Back
                     </button>
                     <button
-                      onClick={() => { setShowItemModal(false); fetchInitialData(); }}
+                      onClick={() => { setShowItemModal(false); fetchInitialData(); fetchPaginatedItems(); }}
                       className="px-6 py-2.5 bg-[#559701] text-white rounded-xl font-semibold hover:bg-[#4a8501] transition-colors shadow-lg shadow-[#559701]/20 flex items-center gap-2"
                     >
                       <Check className="w-4 h-4" />

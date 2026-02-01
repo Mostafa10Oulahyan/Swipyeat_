@@ -18,12 +18,12 @@ export default function DashboardLayout({ children }: Props) {
         <Sidebar />
 
         {/* Main Content Area - responsive margin for sidebar */}
-        <div className="flex-1 flex flex-col sm:mt-0  lg:ml-[200px] xl:ml-[220px] 2xl:ml-[240px] min-h-screen max-w-[1920px]">
+        <div className="flex-1  flex flex-col sm:mt-0 xl:max-w-[calc(100vw - 240px)]  lg:ml-[200px] xl:ml-[220px] 2xl:ml-[240px] min-h-screen ">
           {/* Header */}
           <Header />
 
           {/* Page Content - responsive padding */}
-          <main className="flex-1 overflow-y-y p-3 sm:p-4 lg:p-5 bg-[#f7fafc] max-w-[100vw]">
+          <main className="flex-1 overflow-y-y p-3 sm:p-4 lg:p-5 bg-[#f7fafc] xl:w-[calc(100vw - 240px)]">
             <SecurityShield>
               <RoleGuard>
                 <SubscriptionGuard>

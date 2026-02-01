@@ -61,6 +61,62 @@ export async function getMenuItemsAction(restaurantId: string) {
 }
 
 /**
+ * Fetch paginated menu items for a restaurant with filters
+ */
+export async function getMenuItemsPaginatedAction(
+    restaurantId: string,
+    page: number = 1,
+    limit: number = 15,
+    categoryId?: string,
+    searchQuery?: string,
+    availabilityFilter?: 'all' | 'active' | 'inactive'
+) {
+    const supabase = createAdminClient();
+    const offset = (page - 1) * limit;
+
+    // Build the query
+    let query = supabase
+        .from("menu_items")
+        .select("*, category:categories(name)", { count: "exact" })
+        .eq("restaurant_id", restaurantId);
+
+    // Apply category filter
+    if (categoryId) {
+        query = query.eq("category_id", categoryId);
+    }
+
+    // Apply search filter
+    if (searchQuery && searchQuery.trim() !== "") {
+        query = query.ilike("name", `%${searchQuery}%`);
+    }
+
+    // Apply availability filter
+    if (availabilityFilter === 'active') {
+        query = query.eq("is_available", true);
+    } else if (availabilityFilter === 'inactive') {
+        query = query.eq("is_available", false);
+    }
+
+    // Apply pagination and ordering
+    const { data, error, count } = await query
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+
+    if (error) {
+        console.error("Error fetching paginated items:", error);
+        return { success: false, error: error.message };
+    }
+
+    return { 
+        success: true, 
+        data, 
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+        currentPage: page
+    };
+}
+
+/**
  * Upsert menu item
  */
 export async function upsertMenuItemAction(item: any, restaurantSlug: string) {
