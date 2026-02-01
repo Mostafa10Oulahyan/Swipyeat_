@@ -40,44 +40,44 @@ export default function Header({ title = "Admin Overview", showStatus = true }: 
 
     return (
         <>
-            <header className="h-14 bg-white flex items-center justify-between px-3 sm:px-4 sticky top-0 z-30 border-b border-gray-100 lg:border-b-0">
+            <header className="h-10 lg:h-9 bg-white flex items-center justify-between px-2 lg:px-2 sticky top-0 z-30 border-b border-gray-100 lg:border-b-0 max-w-full">
                 {/* Left - Page Title + Status */}
-                <div className="flex items-center gap-2 sm:gap-3 ml-12 lg:ml-0">
-                    <h1 className="text-sm sm:text-base lg:text-lg font-bold text-[#1a202c] truncate max-w-[120px] sm:max-w-none">{title}</h1>
+                <div className="flex items-center gap-1 ml-12 lg:ml-0 flex-shrink min-w-0 max-w-[40%]">
+                    <h1 className="text-xs lg:text-[10px] font-bold text-[#1a202c] truncate">{title}</h1>
                     {showStatus && (
-                        <span className="hidden sm:inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full bg-[#f0fff4] border border-[#c6f6d5]">
-                            <span className="w-1.5 h-1.5 bg-[#48bb78] rounded-full animate-pulse"></span>
-                            <span className="text-[9px] sm:text-[10px] font-medium text-[#276749]">System Online</span>
+                        <span className="hidden lg:inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-[#f0fff4] border border-[#c6f6d5] flex-shrink-0">
+                            <span className="w-1 h-1 bg-[#48bb78] rounded-full animate-pulse"></span>
+                            <span className="text-[8px] font-medium text-[#276749]">Online</span>
                         </span>
                     )}
                 </div>
 
                 {/* Right Section */}
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1 flex-shrink-0">
 
 
                     {/* User Profile */}
                     <div
-                        className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 ml-1 sm:ml-2 border-l border-gray-200 cursor-pointer hover:bg-gray-50 p-1.5 sm:p-2 rounded-lg transition-colors"
+                        className="flex items-center gap-1 pl-1 border-l border-gray-200 cursor-pointer hover:bg-gray-50 p-0.5 rounded-lg transition-colors"
                         onClick={() => setShowProfileModal(true)}
                     >
-                        <div className="text-right hidden md:block">
-                            <p className="text-xs sm:text-sm font-semibold text-[#1a202c] truncate max-w-[100px] lg:max-w-none">{loading ? "Loading..." : user?.name || "Admin"}</p>
-                            <p className="text-[10px] sm:text-xs text-gray-500 capitalize truncate max-w-[100px] lg:max-w-none">{user?.role?.replace(/_/g, " ") || "Restaurant Admin"}</p>
+                        <div className="text-right hidden lg:block">
+                            <p className="text-[9px] font-semibold text-[#1a202c] truncate max-w-[60px]">{loading ? "..." : user?.name || "Admin"}</p>
+                            <p className="text-[8px] text-gray-500 capitalize truncate max-w-[60px]">{user?.role?.replace(/_/g, " ") || "Admin"}</p>
                         </div>
                         {/* Avatar */}
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center border border-white shadow-sm flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center border border-white shadow-sm flex-shrink-0">
                             {user?.avatar ? (
                                 <Image
                                     src={user.avatar}
                                     alt="User Avatar"
-                                    width={40}
-                                    height={40}
+                                    width={24}
+                                    height={24}
                                     className="rounded-full object-cover w-full h-full"
                                     unoptimized
                                 />
                             ) : (
-                                <span className="text-white font-bold text-sm sm:text-lg">
+                                <span className="text-white font-bold text-[9px]">
                                     {user?.name?.charAt(0).toUpperCase() || "A"}
                                 </span>
                             )}

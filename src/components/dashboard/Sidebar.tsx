@@ -16,6 +16,8 @@ import {
     LogOut,
     Menu,
     X,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 
 const mainNavItems = [
@@ -79,8 +81,21 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const { profile, loading: profileLoading } = useProfile();
     const { restaurant, loading: restaurantLoading } = useRestaurant();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const userRole = profile?.role;
+
+    // Update main content margin when sidebar collapses
+    useEffect(() => {
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            if (isCollapsed) {
+                mainContent.style.marginLeft = '70px';
+            } else {
+                mainContent.style.marginLeft = '';
+            }
+        }
+    }, [isCollapsed]);
 
     // Close mobile menu on route change
     useEffect(() => {
@@ -142,7 +157,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 onClick={() => setIsMobileOpen(false)}
                 className={`
                     flex items-center gap-3 px-3 py-2 rounded-xl text-xs lg:text-sm font-medium
-                    transition-all duration-200
+                    transition-all duration-200 relative group
                     ${active
                         ? "bg-[#559701] text-white shadow-sm"
                         : "text-[#4a5568] hover:bg-[#f7fafc] hover:text-[#1a202c]"
@@ -150,7 +165,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 `}
             >
                 <Icon className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" strokeWidth={active ? 2.5 : 2} />
-                <span className="truncate">{item.name}</span>
+                <span className={`truncate ${isCollapsed ? 'hidden lg:hidden' : ''}`}>{item.name}</span>
+                {isCollapsed && (
+                    <span className="hidden lg:block absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
+                        {item.name}
+                    </span>
+                )}
             </Link>
         );
     };
@@ -177,10 +197,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
     // Sidebar content component
     const SidebarContent = () => (
-        <>
+        <div className="relative w-full h-full flex flex-col">
             {/* Logo & Restaurant Info */}
             <div className="p-3 lg:p-4 pb-3 lg:pb-5 flex-shrink-0">
-                <div className="flex items-center gap-2 lg:gap-3">
+                <div className={`flex items-center gap-2 lg:gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
                     {/* Logo */}
                     <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-50 flex-shrink-0">
                         {restaurant?.logo_url ? (
@@ -196,39 +216,41 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                         )}
                     </div>
                     {/* Restaurant Name */}
-                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <h2 className="text-xs font-bold text-[#1a202c] leading-tight capitalize break-words line-clamp-2">
-                            {restaurant?.name || 'Restaurant Name'}
-                        </h2>
-                        {restaurant?.subscription && (
-                            <div className="flex">
-                                <span className={`
-                                    text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border
-                                    ${(restaurant.subscription.status === 'canceled' || restaurant.subscription.status === 'suspended')
-                                        ? "bg-red-500 text-white border-red-600"
-                                        : (restaurant.subscription.plan_type === 'pro')
-                                            ? "bg-orange-50 text-orange-600 border-orange-100"
-                                            : "bg-blue-50 text-blue-600 border-blue-100"}
-                                `}>
-                                    {(restaurant.subscription.status === 'canceled') ? 'CANCELLED' :
-                                        (restaurant.subscription.status === 'suspended') ? 'SUSPENDED' :
-                                            (restaurant.subscription.plan_type === 'pro' ? 'Professional' : 'Free Trial')}
-                                </span>
-                            </div>
-                        )}
-                    </div>
+                    {!isCollapsed && (
+                        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                            <h2 className="text-xs font-bold text-[#1a202c] leading-tight capitalize break-words line-clamp-2">
+                                {restaurant?.name || 'Restaurant Name'}
+                            </h2>
+                            {restaurant?.subscription && (
+                                <div className="flex">
+                                    <span className={`
+                                        text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border
+                                        ${(restaurant.subscription.status === 'canceled' || restaurant.subscription.status === 'suspended')
+                                            ? "bg-red-500 text-white border-red-600"
+                                            : (restaurant.subscription.plan_type === 'pro')
+                                                ? "bg-orange-50 text-orange-600 border-orange-100"
+                                                : "bg-blue-50 text-blue-600 border-blue-100"}
+                                    `}>
+                                        {(restaurant.subscription.status === 'canceled') ? 'CANCELLED' :
+                                            (restaurant.subscription.status === 'suspended') ? 'SUSPENDED' :
+                                                (restaurant.subscription.plan_type === 'pro' ? 'Professional' : 'Free Trial')}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Main Navigation - Scrollable */}
-            <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300">
+            <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300 relative">
                 {filteredMainNav.map((item) => (
                     <NavLink key={item.name} item={item} />
                 ))}
 
                 {/* Account Section Label - only show if there are items */}
                 {filteredAccountNav.length > 0 && (
-                    <div className="pt-4 pb-1.5">
+                    <div className={`pt-4 pb-1.5 ${isCollapsed ? 'hidden lg:hidden' : ''}`}>
                         <span className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-wider">
                             Account
                         </span>
@@ -240,6 +262,19 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 ))}
             </nav>
 
+            {/* Toggle Button - Positioned on the right edge */}
+            <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-12 rounded-r-lg bg-white border border-l-0 border-gray-200 hover:bg-gray-50 transition-colors items-center justify-center shadow-md z-50"
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+                {isCollapsed ? (
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
+                ) : (
+                    <ChevronLeft className="w-3.5 h-3.5 text-gray-600" />
+                )}
+            </button>
+
             {/* Disconnect/Logout */}
             <div className="p-2 pb-4 flex-shrink-0">
                 <button
@@ -249,13 +284,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                             window.location.href = res.redirectUrl;
                         }
                     }}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl w-full text-left text-[#e53e3e] hover:bg-red-50 transition-all duration-200"
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl w-full text-left text-[#e53e3e] hover:bg-red-50 transition-all duration-200 ${isCollapsed ? 'lg:justify-center' : ''} relative group`}
                 >
                     <LogOut className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-                    <span className="text-xs lg:text-sm font-medium">Disconnect</span>
+                    <span className={`text-xs lg:text-sm font-medium ${isCollapsed ? 'lg:hidden' : ''}`}>Disconnect</span>
+                    {isCollapsed && (
+                        <span className="hidden lg:block absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
+                            Disconnect
+                        </span>
+                    )}
                 </button>
             </div>
-        </>
+        </div>
     );
 
     // Show loading state
@@ -308,7 +348,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             >
                 {/* Close button */}
                 <button
-                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors z-[60]"
                     onClick={() => setIsMobileOpen(false)}
                     aria-label="Close menu"
                 >
@@ -318,7 +358,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             </aside>
 
             {/* Desktop Sidebar - Fixed Left */}
-            <aside className="hidden lg:flex w-[200px] xl:w-[220px] 2xl:w-[240px] h-screen bg-white flex-col fixed left-0 top-0 border-r border-gray-100 z-40">
+            <aside className={`hidden lg:flex h-screen bg-white flex-col fixed left-0 top-0 border-r border-gray-100 z-40 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[200px] xl:w-[220px] 2xl:w-[240px]'}`}>
                 <SidebarContent />
             </aside>
         </>
